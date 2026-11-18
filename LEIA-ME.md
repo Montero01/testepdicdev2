@@ -142,3 +142,5 @@ Acesse **Desempenho → Logística**. O módulo reúne Visão Geral, movimentaç
 Dashboards setorizados: consulte DASHBOARDS.md para gráficos, filtros, cálculos e validação.
 
 Visualização de comprovantes e exportação dos dados: consulte ARQUIVOS-E-EXPORTACOES.md.
+
+Estoque e permissões específicas: consulte ESTOQUE-E-ACESSOS.md.
