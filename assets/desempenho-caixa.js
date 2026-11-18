@@ -89,6 +89,7 @@
         else {c.append(el('p','pdi-perf-muted','Um registro por dia. Confira os valores antes de concluir. O PDF é opcional.'));c.append(form(null));}
       }
       if(context.can_manage)root.append(window.CDEFiles.toolbar({db,module:'cash_daily',filters:()=>({p_start:filters.start,p_end:filters.end,p_subject:filters.cashier||null}),alive,isBusy:()=>busy}));
+      window.CDEManagement.deletion({db,host:root,module:'cash_daily',filters:()=>({start:filters.start,end:filters.end}),refresh:()=>refresh(),alive});
       const filterHost=context.can_manage?card('Filtros'):card('Meus fechamentos',true);
       if(!context.can_manage)filterHost.id='pdi-cash-history';
       const f=el('form','pdi-perf-filters');

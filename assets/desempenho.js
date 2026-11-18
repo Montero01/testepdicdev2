@@ -247,6 +247,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
         form.addEventListener('submit', event => { event.preventDefault(); createEntry(m2.value, orders.value,analyzed.value); }); c.append(form);
       }
     }
+    const manageEpoch=epoch,manageRoot=root;window.CDEManagement.deletion({db,host:root,module:'pcp_m2',filters:()=>({start:filters.start,end:filters.end}),refresh:()=>refresh(),alive:()=>current(manageEpoch)&&manageRoot.isConnected});
     const filterHost = context.can_manage ? card('Filtros') : card('Lançamentos do período', true);
     const exportEpoch=epoch,exportRoot=root;if(context.can_manage)root.append(window.CDEFiles.toolbar({db,module:'pcp_m2',filters:()=>({p_start:filters.start,p_end:filters.end,p_subject:filters.pcp||null}),alive:()=>current(exportEpoch)&&exportRoot.isConnected,isBusy:()=>busy}));
     const filter = el('form', 'pdi-perf-filters');

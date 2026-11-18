@@ -144,3 +144,5 @@ Dashboards setorizados: consulte DASHBOARDS.md para gráficos, filtros, cálculo
 Visualização de comprovantes e exportação dos dados: consulte ARQUIVOS-E-EXPORTACOES.md.
 
 Estoque e permissões específicas: consulte ESTOQUE-E-ACESSOS.md.
+
+Gestão de exclusões, orçamento da frota e eficiência do Estoque: GESTAO-E-EFICIENCIA.md.
