@@ -228,10 +228,10 @@
   }
   function render(today, notice, dashboardError) {
     root.replaceChildren();
-    root.append(heading({title:context.can_manage?'Desempenho da equipe':'Meu desempenho',description:'PCP · Área recuperada em produção',badge:context.dashboard_only?'Somente consulta':context.can_correct?'Supervisão':'Registro diário',refresh:()=>refresh()}),moduleNavigation());
+    root.append(heading({title:'PCP',description:'PCP · Área recuperada em produção',badge:context.dashboard_only?'Somente consulta':context.can_correct?'Supervisão':'Registro diário',refresh:()=>refresh()}));
     const msg = el('p', 'pdi-perf-status', notice); msg.setAttribute('role', 'status'); msg.setAttribute('aria-live', 'polite'); root.append(msg);
     if (context.can_collect && context.is_pcp) {
-      const c = card(`Resultado PCP · ${day(context.today)}`); c.classList.add('pdi-perf-entry-card');
+      const c = card(`Resultado PCP · ${day(context.today)}`); c.classList.add('pdi-perf-entry-card');c.dataset.sectorPane='entry';
       if (today) {
         c.classList.add('pdi-perf-completed'); c.prepend(el('span','pdi-perf-access-badge','Dia registrado'));
         c.append(el('strong', 'pdi-perf-result', `Salvo: ${fmt(today.m2_saved)} m² · Analisado: ${today.m2_analyzed===null?'não informado':fmt(today.m2_analyzed)+' m²'}`), el('p', 'pdi-perf-muted', `Pedidos: ${today.order_numbers.join(', ') || 'Nenhum'}.
@@ -248,6 +248,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
       }
     }
     const filterHost = context.can_manage ? card('Filtros') : card('Lançamentos do período', true);
+    const exportEpoch=epoch,exportRoot=root;if(context.can_manage)root.append(window.CDEFiles.toolbar({db,module:'pcp_m2',filters:()=>({p_start:filters.start,p_end:filters.end,p_subject:filters.pcp||null}),alive:()=>current(exportEpoch)&&exportRoot.isConnected,isBusy:()=>busy}));
     const filter = el('form', 'pdi-perf-filters');
     if (context.can_manage) {
       const wrap = el('div', 'pdi-perf-field'); const label = el('label', '', 'PCP'); label.htmlFor = 'pdi-perf-pcp';
@@ -262,28 +263,28 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
     const applyFilters = () => { if (busy || cashController?.isBusy()) return;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(start.value) || !/^\d{4}-\d{2}-\d{2}$/.test(end.value) || start.value > end.value) { status('Selecione um período válido: a data inicial deve ser anterior ou igual à final.', true); return; }
       filters = { start: start.value, end: end.value, pcp: $('#pdi-perf-pcp', filter)?.value || '' }; page = logPage = rankPage = wastePage = 0;
-      refresh().then(() => { const h = root && $('details', root); if (h) h.open = true; });
+      refresh().then(() => { const h = root && $('[data-sector-pane="history"]', root); if (h) h.open = true; });
     };
     filter.addEventListener('submit',event=>{event.preventDefault();applyFilters();});
     filterHost.append(periodButtons(context.today,(from,to)=>{if(busy)return;start.value=from;end.value=to;applyFilters();},filters));
-    filterHost.classList.add('pdi-perf-filter-card');
+    filterHost.classList.add('pdi-perf-filter-card');if(context.can_manage)filterHost.dataset.sectorCommon='filters';else filterHost.dataset.sectorPane='history';
     filterHost.append(filter);
     if (context.can_manage){renderPcpDashboard(dashboardError);renderWasteManagement();}
     if (context.can_view_logs) {
-      const logs = card('Log de auditoria · acesso gerencial', true); logs.id = 'pdi-perf-audit';
+      const logs = card('Log de auditoria · acesso gerencial', true); logs.id = 'pdi-perf-audit';logs.dataset.sectorPane='audit';
       logs.append(el('p', 'pdi-perf-muted', 'Pesquisa mensal de eventos e arquivos CSV dos meses anteriores. Horários de Manaus.'));
       const body = el('div', 'pdi-perf-audit-body'); logs.append(body);
       logs.addEventListener('toggle', () => { if (logs.open && !logs.dataset.loaded) loadLogs(body, logs); });
     }
     if (context.dashboard_only) {
-      return;
+      window.CDECharts.organize(root,{key:'pcp',canManage:context.can_manage});return;
     }
-    const history = context.can_manage ? card('Lançamentos do período', true) : filterHost;
+    const history = context.can_manage ? card('Lançamentos do período', true) : filterHost;history.dataset.sectorPane='history';
     history.append(el('p', 'pdi-perf-muted', `${count} lançamento(s) no período. Cada lançamento corresponde a um PCP por dia.`));
     if (!rows.length) history.append(el('p', 'pdi-perf-empty', 'Nenhum lançamento encontrado neste período.'));
     rows.forEach(row => history.append(record(row)));
-    history.append(pager(page, count, n => { page = n; refresh().then(() => { const h = root && $('details', root); if (h) h.open = true; }); }));
-    if (context.can_correct) history.append(el('p', 'pdi-perf-muted', 'Selecione “Corrigir” em um lançamento existente. Não há cadastro em nome de outro PCP nesta etapa.'));
+    history.append(pager(page, count, n => { page = n; refresh().then(() => { const h = root && $('[data-sector-pane="history"]', root); if (h) h.open = true; }); }));
+    if (context.can_correct) history.append(el('p', 'pdi-perf-muted', 'Selecione “Corrigir” em um lançamento existente. Não há cadastro em nome de outro PCP nesta etapa.'));window.CDECharts.organize(root,{key:'pcp',canManage:context.can_manage});
 
 
   }
@@ -291,20 +292,20 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
   const areaValue=value=>value===null||value===undefined?'Não informado':`${fmt(value)} m²`;
   const percent=value=>value===null||value===undefined?'—':`${fmt(value)}%`;
   function renderPcpDashboard(error){
-    const c=card('Produção · indicadores do período');if(error||!dashboard){c.append(el('p','pdi-perf-status is-error','Não foi possível consultar os indicadores.'));return;}
+    const c=card('Produção · indicadores do período');c.dataset.sectorPane='overview';if(error||!dashboard){c.append(el('p','pdi-perf-status is-error','Não foi possível consultar os indicadores.'));return;}
     const metrics=el('dl','pdi-perf-metrics');for(const[label,value]of[['M² analisados',areaValue(dashboard.total_analyzed)],['M² salvos',areaValue(dashboard.total_m2)],['M² desperdiçados',areaValue(dashboard.total_wasted)],['Aproveitamento',percent(dashboard.utilization_percent)],['Taxa de desperdício',percent(dashboard.waste_percent)],['Recuperação · salvo/analisado',percent(dashboard.recovery_percent)]]){const n=el('div','pdi-perf-metric');n.append(el('dt','',label),el('dd','',value));metrics.append(n);}c.append(metrics);
     c.append(el('p','pdi-perf-muted',`${dashboard.entry_count} lançamento(s). ${dashboard.pending_count||0} pendente(s) de análise ou desperdício. Aproveitamento e taxa de desperdício do resumo consideram apenas pares informados.`),el('p','pdi-perf-muted','Aproveitamento = (analisado − desperdiçado) ÷ analisado × 100. Recuperação = salvo ÷ analisado × 100; os m² salvos já fazem parte da área analisada. Base zero: sem percentual.'));
-    const rankings=el('div','pcp-ranking-grid');
+    window.CDECharts.pcp(c,dashboard,`${day(filters.start)} a ${day(filters.end)} · ${filters.pcp?(context.pcps||[]).find(p=>p.id===filters.pcp)?.name||'PCP selecionado':'Todos os PCPs autorizados'}`);const details=el('details','sector-existing');details.append(el('summary','','Rankings e informações existentes'));const rankings=el('div','pcp-ranking-grid');
     for(const [title,key,negative,isPercent]of[['Mais m² analisados','total_analyzed',false,false],['Mais m² salvos','total_m2',false,false],['Ranking de aproveitamento','utilization_percent',false,true],['Mais desperdício · indicador negativo','total_wasted',true,false]]){
       const panel=el('section',`pcp-ranking-card${negative?' pcp-ranking-negative':''}`);panel.append(el('h3','',title));const items=[...(dashboard.ranking||[])].filter(r=>r[key]!==null&&r[key]!==undefined).sort((a,b)=>Number(b[key])-Number(a[key])||a.name.localeCompare(b.name));
       if(!items.length)panel.append(el('p','pdi-perf-empty',isPercent?'Sem base completa para classificar o aproveitamento.':'Nenhum valor informado neste período.'));
       const max=Math.max(1,...items.map(r=>Number(r[key]))),list=el('ol','pdi-perf-ranking-list');let last=null,place=0;
       items.forEach(row=>{if(last!==String(row[key]))place++;last=String(row[key]);const item=el('li','pdi-perf-rank-row'),head=el('div','pdi-perf-rank-heading');head.append(el('span','pdi-perf-place',`${place}º`),el('strong','pdi-perf-rank-name',row.name),el('strong','pdi-perf-rank-total',isPercent?percent(row[key]):areaValue(row[key])));const track=el('div','pdi-perf-rank-track'),bar=el('div','pdi-perf-rank-fill');bar.style.width=`${Math.max(0,Number(row[key]))/max*100}%`;track.setAttribute('aria-hidden','true');track.append(bar);item.append(head,track,el('p','pdi-perf-muted',`${row.entry_count} lançamento(s) · ${row.pending_count||0} pendência(s) de análise/desperdício`));list.append(item);});panel.append(list);if(isPercent)panel.append(el('p','pdi-perf-muted','Somente PCPs com análise e desperdício preenchidos em todos os lançamentos do recorte; percentual calculado sobre os totais.'));if(negative)panel.append(el('p','pdi-perf-muted','Maior volume perdido no topo: sinal de atenção, não de melhor desempenho. Compare também a taxa percentual e o volume analisado.'));rankings.append(panel);
-    }c.append(rankings);
+    }details.append(rankings);c.append(details);
     const daily=el('details','pcp-daily');daily.append(el('summary','','Métricas por dia'));for(const d of dashboard.daily||[]){const row=el('article','pdi-perf-record');row.append(el('h3','',day(d.date)),el('p','',`Analisado: ${areaValue(d.analyzed)} · Salvo: ${areaValue(d.saved)} · Desperdício: ${areaValue(d.wasted)}`),el('p','pdi-perf-muted',`Aproveitamento: ${percent(d.utilization_percent)} · ${d.pending_count} pendência(s)`));daily.append(row);}c.append(daily);
   }
   function renderWasteManagement(){
-    if(!dashboard?.can_record_waste)return;const c=card('Registrar desperdício por PCP',true);c.id='pdi-pcp-waste-management';c.append(el('p','pdi-perf-muted','Use os filtros de PCP e período acima. Registre zero quando tiver confirmado que não houve desperdício. A quantidade é vinculada ao lançamento do PCP nesse dia.'));
+    if(!dashboard?.can_record_waste)return;const c=card('Registrar desperdício por PCP',true);c.id='pdi-pcp-waste-management';c.dataset.sectorPane='waste';c.append(el('p','pdi-perf-muted','Use os filtros de PCP e período acima. Registre zero quando tiver confirmado que não houve desperdício. A quantidade é vinculada ao lançamento do PCP nesse dia.'));
     if(!wasteData.rows.length)c.append(el('p','pdi-perf-empty','Nenhum lançamento do PCP encontrado para registrar desperdício.'));
     for(const row of wasteData.rows){const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.pcp_name_snapshot}`),el('p','',`Analisado: ${areaValue(row.m2_analyzed)} · Salvo: ${areaValue(row.m2_saved)} · Desperdício: ${areaValue(row.m2_wasted)}`));
       if(row.m2_analyzed===null)item.append(el('p','pdi-perf-muted','Registro antigo sem análise: a supervisão deve completar os m² analisados antes do desperdício.'));
@@ -369,7 +370,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
       if (!current(e)) return; if (result.error) throw result.error;
       if (!result.data?.length) { status('O registro mudou ou sua permissão foi alterada. Atualize os dados e revise a correção antes de tentar novamente.', true); return; }
       await refresh('Correção salva e registrada no log de auditoria.');
-      if (current(e)) { const h = $('details', root); if (h) h.open = true; }
+      if (current(e)) { const h = $('[data-sector-pane="history"]', root); if (h) h.open = true; }
     } catch (error) { if (current(e)) status(message(error), true); }
     finally { if (current(e)) lock(false); }
   }

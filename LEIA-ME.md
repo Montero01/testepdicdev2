@@ -138,3 +138,7 @@ A versão mais recente amplia o mesmo log mensal para os eventos dos PDFs, consu
 ## Novo módulo de Logística
 
 Acesse **Desempenho → Logística**. O módulo reúne Visão Geral, movimentações, reposições, jornadas individuais, manutenções, cronograma, abastecimentos, log mensal e cadastros de equipe/frota. Consulte `LOGISTICA.md` para o passo a passo inicial, permissões, campos e fórmulas. A base está vazia de lançamentos logísticos; o primeiro passo da Diretoria é cadastrar a equipe e os veículos e atribuir os responsáveis pela área.
+
+Dashboards setorizados: consulte DASHBOARDS.md para gráficos, filtros, cálculos e validação.
+
+Visualização de comprovantes e exportação dos dados: consulte ARQUIVOS-E-EXPORTACOES.md.
