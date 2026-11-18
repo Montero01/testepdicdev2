@@ -39,7 +39,7 @@
   function create(options) {
     const {db,user,root}=options;
     let disposed=false,busy=false,request=0,context=null,rows=[],count=0,page=0,logPage=0;
-    let previewHandle=null;let filters={start:'',end:'',cashier:''};
+    let recordAdjustments=null;let previewHandle=null;let filters={start:'',end:'',cashier:''};
     const alive=()=>!disposed&&options.isCurrent();
     function button(text,action,secondary=false) { const b=el('button',secondary?'pdi-perf-secondary':'',text);b.type='button';b.addEventListener('click',()=>{if(!busy)action();});return b; }
     function lock(value) { busy=value; if(!alive())return;root.setAttribute('aria-busy',String(value));root.querySelectorAll('input,select,textarea,button').forEach(n=>{n.disabled=value||n.dataset.fixedDisabled==='true';}); }
@@ -89,7 +89,7 @@
         else {c.append(el('p','pdi-perf-muted','Um registro por dia. Confira os valores antes de concluir. O PDF é opcional.'));c.append(form(null));}
       }
       if(context.can_manage)root.append(window.CDEFiles.toolbar({db,module:'cash_daily',filters:()=>({p_start:filters.start,p_end:filters.end,p_subject:filters.cashier||null}),alive,isBusy:()=>busy}));
-      window.CDEManagement.deletion({db,host:root,module:'cash_daily',filters:()=>({start:filters.start,end:filters.end}),refresh:()=>refresh(),alive});
+      recordAdjustments=window.CDEManagement.recordActions({db,module:'cash_daily',refresh:()=>{page=0;return refresh();},alive,isBusy:()=>busy});
       const filterHost=context.can_manage?card('Filtros'):card('Meus fechamentos',true);
       if(!context.can_manage)filterHost.id='pdi-cash-history';
       const f=el('form','pdi-perf-filters');
@@ -112,15 +112,15 @@
         const audit=card('Log do Caixa · acesso gerencial',true);audit.id='pdi-cash-audit';audit.dataset.sectorPane='audit';audit.append(el('p','pdi-perf-muted','Pesquisa mensal de eventos e exportações CSV. Datas de alteração no horário de Manaus.'));
         const body=el('div');audit.append(body);audit.addEventListener('toggle',()=>{if(audit.open&&!audit.dataset.loaded&&!busy)loadLogs(audit,body);});
       }
-      if(context.dashboard_only){const docs=card('Comprovantes dos fechamentos',true);docs.dataset.sectorPane='overview';docs.append(el('p','pdi-perf-muted','Consulta dos arquivos do período, sem alterar os lançamentos.'));for(const row of rows){const entry=el('article','pdi-perf-record');entry.append(el('h3','',`${day(row.work_date)} · ${row.cashier_name_snapshot}`));if(row.pdf_file_id)entry.append(button(`Visualizar PDF · ${row.pdf_name_snapshot||'fechamento.pdf'}`,()=>viewPDF(row.pdf_file_id),true),button('Baixar PDF',()=>download(row.pdf_file_id),true));else entry.append(el('p','pdi-perf-muted','Sem PDF anexado.'));docs.append(entry);}if(!rows.length)docs.append(el('p','pdi-perf-muted','Nenhum fechamento no período.'));docs.append(pager(page,count,n=>{page=n;refresh();}));window.CDECharts.organize(root,{key:'cash',canManage:context.can_manage});return;}
+      if(context.dashboard_only){const docs=card('Fechamentos e comprovantes do período',true);docs.dataset.sectorPane='overview';docs.append(el('p','pdi-perf-muted','Consulte os fechamentos e seus comprovantes. As ações permitidas ficam em Ajustes.'));for(const row of rows){const entry=el('article','pdi-perf-record');entry.append(el('h3','',`${day(row.work_date)} · ${row.cashier_name_snapshot}`));if(row.pdf_file_id)entry.append(button(`Visualizar PDF · ${row.pdf_name_snapshot||'fechamento.pdf'}`,()=>viewPDF(row.pdf_file_id),true),button('Baixar PDF',()=>download(row.pdf_file_id),true));else entry.append(el('p','pdi-perf-muted','Sem PDF anexado.'));recordAdjustments({host:entry,id:row.id,entity:'daily'});docs.append(entry);}if(!rows.length)docs.append(el('p','pdi-perf-muted','Nenhum fechamento no período.'));docs.append(pager(page,count,n=>{page=n;refresh();}));window.CDECharts.organize(root,{key:'cash',canManage:context.can_manage});return;}
       const history=context.can_manage?card('Fechamentos do período',true):filterHost;history.id='pdi-cash-history';history.dataset.sectorPane='history';
       history.append(el('p','pdi-perf-muted',`${count} fechamento(s) no período.`));
       if(!rows.length)history.append(el('p','pdi-perf-empty','Nenhum fechamento encontrado.'));
       rows.forEach(row=>{
         const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.cashier_name_snapshot}`),values(row),el('p','pdi-perf-muted',`Atualizado em ${time(row.updated_at)} · revisão ${row.revision}`));
         if(context.can_correct)item.append(button('Corrigir fechamento',()=>{
-          root.querySelectorAll('.pdi-cash-edit').forEach(n=>n.remove());const edit=form(row);edit.classList.add('pdi-cash-edit');item.append(edit);$('input',edit)?.focus();
-        },true));history.append(item);
+          root.querySelectorAll('.pdi-cash-edit').forEach(n=>n.remove());const edit=form(row);edit.classList.add('pdi-cash-edit');item.append(edit);recordAdjustments({host:edit,id:row.id,entity:'daily',inside:true});$('input',edit)?.focus();
+        },true));if(!context.can_correct)recordAdjustments({host:item,id:row.id,entity:'daily'});history.append(item);
       });
       history.append(pager(page,count,n=>{page=n;refresh().then(openHistory);}));window.CDECharts.organize(root,{key:'cash',canManage:context.can_manage});
 

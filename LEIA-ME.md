@@ -148,3 +148,5 @@ Estoque e permissões específicas: consulte ESTOQUE-E-ACESSOS.md.
 Gestão de exclusões, orçamento da frota e eficiência do Estoque: GESTAO-E-EFICIENCIA.md.
 
 Continuidade do orçamento de combustível e projeções: ORCAMENTO-COMBUSTIVEL.md.
+
+Exclusão agora nos ajustes de cada registro: EXCLUSAO-NOS-AJUSTES.md.
