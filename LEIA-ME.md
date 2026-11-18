@@ -150,3 +150,5 @@ Gestão de exclusões, orçamento da frota e eficiência do Estoque: GESTAO-E-EF
 Continuidade do orçamento de combustível e projeções: ORCAMENTO-COMBUSTIVEL.md.
 
 Exclusão agora nos ajustes de cada registro: EXCLUSAO-NOS-AJUSTES.md.
+
+Padronização dos ajustes e símbolos +/−: PADRAO-VISUAL-CONTROLES.md.

@@ -282,7 +282,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
     if (!rows.length) history.append(el('p', 'pdi-perf-empty', 'Nenhum lançamento encontrado neste período.'));
     rows.forEach(row => history.append(record(row)));
     history.append(pager(page, count, n => { page = n; refresh().then(() => { const h = root && $('[data-sector-pane="history"]', root); if (h) h.open = true; }); }));
-    if (context.can_correct) history.append(el('p', 'pdi-perf-muted', 'Selecione “Corrigir” em um lançamento existente. Não há cadastro em nome de outro PCP nesta etapa.'));window.CDECharts.organize(root,{key:'pcp',canManage:context.can_manage});
+    if (context.can_correct) history.append(el('p', 'pdi-perf-muted', 'Abra “Ajustes” no lançamento existente. Não há cadastro em nome de outro PCP nesta etapa.'));window.CDECharts.organize(root,{key:'pcp',canManage:context.can_manage});
 
 
   }
@@ -307,7 +307,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
     if(!wasteData.rows.length)c.append(el('p','pdi-perf-empty','Nenhum lançamento do PCP encontrado para registrar desperdício.'));
     for(const row of wasteData.rows){const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.pcp_name_snapshot}`),el('p','',`Analisado: ${areaValue(row.m2_analyzed)} · Salvo: ${areaValue(row.m2_saved)} · Desperdício: ${areaValue(row.m2_wasted)}`));
       if(row.m2_analyzed===null)item.append(el('p','pdi-perf-muted','Registro antigo sem análise: a supervisão deve completar os m² analisados antes do desperdício.'));
-      else{const form=el('form','pdi-perf-form'),amount=field(form,'M² desperdiçados','text',`waste-${row.id}`,row.m2_wasted===null?'':String(row.m2_wasted).replace('.',','));amount.inputMode='decimal';amount.required=true;amount.maxLength=13;let reason=null;if(row.waste_revision){reason=field(form,'Justificativa da correção (10 a 300 caracteres)','textarea',`waste-reason-${row.id}`);reason.required=true;reason.minLength=10;reason.maxLength=300;}const save=el('button','',row.waste_revision?'Corrigir desperdício':'Registrar desperdício');save.type='submit';form.append(save);form.addEventListener('submit',event=>{event.preventDefault();saveWaste(row,amount.value,reason?.value||'');});item.append(form);if(row.waste_revision)recordAdjustments?.({host:form,id:row.id,entity:'waste',inside:true,deleteLabel:'Excluir desperdício'});}c.append(item);
+      else{window.CDEManagement.editor({host:item,label:'Ajustes do desperdício',alive:()=>!!user&&item.isConnected,isBusy:()=>busy,render:()=>{const form=el('form','pdi-perf-form'),amount=field(form,'M² desperdiçados','text',`waste-${row.id}`,row.m2_wasted===null?'':String(row.m2_wasted).replace('.',','));amount.inputMode='decimal';amount.required=true;amount.maxLength=13;let reason=null;if(row.waste_revision){reason=field(form,'Justificativa da correção (10 a 300 caracteres)','textarea',`waste-reason-${row.id}`);reason.required=true;reason.minLength=10;reason.maxLength=300;}const save=el('button','',row.waste_revision?'Corrigir desperdício':'Registrar desperdício');save.type='submit';form.append(save);form.addEventListener('submit',event=>{event.preventDefault();saveWaste(row,amount.value,reason?.value||'');});if(row.waste_revision)recordAdjustments?.({host:form,id:row.id,entity:'waste',inside:true,deleteLabel:'Excluir desperdício'});return form;}});}c.append(item);
     }c.append(pager(wastePage,wasteData.count,n=>{wastePage=n;refresh().then(()=>{const d=$('#pdi-pcp-waste-management',root);if(d)d.open=true;});}));
   }
   async function saveWaste(row,raw,reason){if(busy)return;let amount;try{amount=parseM2(raw);if(areaUnits(amount)+areaUnits(row.m2_saved)>areaUnits(row.m2_analyzed))throw new Error('Desperdício mais m² salvos não podem superar os analisados.');if(row.waste_revision&&(reason.trim().length<10||reason.length>300))throw new Error('Justifique a correção em 10 a 300 caracteres.');}catch(error){status(message(error),true);return;}const e=epoch;lock(true);try{const q=row.waste_revision?db.from('pdi_pcp_waste').update({m2_wasted:amount,reason:reason.trim()}).eq('entry_id',row.id).eq('revision',row.waste_revision).select('entry_id'):db.from('pdi_pcp_waste').insert({entry_id:row.id,m2_wasted:amount});const result=await q;if(!current(e))return;if(result.error)throw result.error;if(row.waste_revision&&!result.data?.length)throw new Error('O registro mudou. Atualize os dados antes de corrigir.');await refresh('Desperdício salvo e registrado no log de auditoria.');const d=$('#pdi-pcp-waste-management',root);if(d)d.open=true;}catch(error){if(current(e))status(message(error),true);}finally{if(current(e))lock(false);}}
@@ -324,7 +324,7 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
     n.append(el('h3', '', `${day(row.work_date)} · ${row.pcp_name_snapshot}`), el('strong', 'pdi-perf-result', `${fmt(row.m2_saved)} m²`),
       el('p','pdi-perf-muted',`Analisado: ${areaValue(analyzed)} · Desperdício: ${areaValue(wasted)} · Aproveitamento: ${analyzed>0&&wasted!==null&&wasted!==undefined?percent((Number(analyzed)-Number(wasted))/Number(analyzed)*100):'—'}`),
       el('p', 'pdi-perf-orders', `Pedidos: ${row.order_numbers.join(', ') || 'Nenhum'}`), el('p', 'pdi-perf-muted', `Última atualização: ${time(row.updated_at)} · revisão ${row.revision}`));
-    if (context.can_correct) n.append(button('Corrigir', () => {
+    if (context.can_correct) window.CDEManagement.editor({host:n,alive:()=>!!user&&n.isConnected,isBusy:()=>busy,render:()=>{
       if (busy || cashController?.isBusy()) return;
       root.querySelectorAll('.pdi-perf-edit-form').forEach(f => f.remove()); editId = row.id;
       const form = el('form', 'pdi-perf-form pdi-perf-edit-form');
@@ -333,9 +333,9 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
       const orders = field(form, 'Pedidos para auditoria — corrigidos', 'textarea', 'edit-orders', row.order_numbers.join(', ')); orders.maxLength = 4400;
       const reason = field(form, 'Justificativa da correção (10 a 300 caracteres)', 'textarea', 'edit-reason'); reason.required = true; reason.minLength = 10; reason.maxLength = 300;
       const save = el('button', '', 'Salvar correção'); save.type = 'submit';
-      const cancel = button('Cancelar', () => { if (!busy) { form.remove(); editId = null; } }, true); form.append(save, cancel);
-      form.addEventListener('submit', event => { event.preventDefault(); updateEntry(row, m2.value, orders.value, reason.value,analyzedInput.value); });n.append(form);recordAdjustments?.({host:form,id:row.id,entity:'daily',inside:true}); m2.focus();
-    }, true));
+      const cancel = button('Cancelar', () => { if (!busy) { const details=form.closest('details.record-adjustments');if(details){details.open=false;details.querySelector('summary')?.focus();}form.remove(); editId = null; } }, true); form.append(save, cancel);
+      form.addEventListener('submit', event => { event.preventDefault(); updateEntry(row, m2.value, orders.value, reason.value,analyzedInput.value); });recordAdjustments?.({host:form,id:row.id,entity:'daily',inside:true});return form;
+    }});
     if(!context.can_correct)recordAdjustments?.({host:n,id:row.id,entity:'daily'});if(recordWaste.has(row.id))recordAdjustments?.({host:n,id:row.id,entity:'waste',label:'Ajustes do desperdício',deleteLabel:'Excluir desperdício'});return n;
   }
   async function createEntry(rawM2, rawOrders,rawAnalyzed) {

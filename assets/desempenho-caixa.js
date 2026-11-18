@@ -118,9 +118,9 @@
       if(!rows.length)history.append(el('p','pdi-perf-empty','Nenhum fechamento encontrado.'));
       rows.forEach(row=>{
         const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.cashier_name_snapshot}`),values(row),el('p','pdi-perf-muted',`Atualizado em ${time(row.updated_at)} · revisão ${row.revision}`));
-        if(context.can_correct)item.append(button('Corrigir fechamento',()=>{
-          root.querySelectorAll('.pdi-cash-edit').forEach(n=>n.remove());const edit=form(row);edit.classList.add('pdi-cash-edit');item.append(edit);recordAdjustments({host:edit,id:row.id,entity:'daily',inside:true});$('input',edit)?.focus();
-        },true));if(!context.can_correct)recordAdjustments({host:item,id:row.id,entity:'daily'});history.append(item);
+        if(context.can_correct)window.CDEManagement.editor({host:item,alive,isBusy:()=>busy,render:()=>{
+          root.querySelectorAll('.pdi-cash-edit').forEach(n=>n.remove());const edit=form(row);edit.classList.add('pdi-cash-edit');recordAdjustments({host:edit,id:row.id,entity:'daily',inside:true});return edit;
+        }});if(!context.can_correct)recordAdjustments({host:item,id:row.id,entity:'daily'});history.append(item);
       });
       history.append(pager(page,count,n=>{page=n;refresh().then(openHistory);}));window.CDECharts.organize(root,{key:'cash',canManage:context.can_manage});
 

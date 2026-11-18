@@ -111,3 +111,18 @@ img.file-preview-frame{object-fit:contain;display:block}
 .stock-page .stat-value{font-size:clamp(1.1rem,2vw,1.8rem);overflow-wrap:anywhere}
 /* Ações gerenciais dentro dos ajustes do próprio registro. */
 .record-actions-slot{min-width:0}.record-actions-slot:empty{display:none}.record-adjustments{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.record-adjustments>summary{cursor:pointer;font-size:.82rem;font-weight:600;min-height:36px;display:list-item}.record-delete-actions{padding-top:10px}.record-delete-actions>.button{width:auto}.inline-delete-confirm{display:grid;gap:10px;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-alt);color:var(--text);min-width:0}.inline-delete-confirm textarea{min-height:82px;width:100%;max-width:100%}.inline-delete-confirm>.management-actions{margin:0;flex-wrap:wrap}.budget-editor>.record-actions-slot{flex-basis:100%}@media(max-width:600px){.record-adjustments>summary{min-height:44px}.inline-delete-confirm .button{min-height:44px}}
+/* Padrão único para expansões e ajustes, em ambos os temas. */
+:is(#app-screen,#modal-overlay) details>summary{position:relative;list-style:none;cursor:pointer;padding-right:38px}
+:is(#app-screen,#modal-overlay) details>summary::-webkit-details-marker{display:none}
+:is(#app-screen,#modal-overlay) details>summary::marker{content:''}
+:is(#app-screen,#modal-overlay) details>summary::before{content:none;display:none}
+:is(#app-screen,#modal-overlay) details>summary::after{content:'+';position:absolute;right:12px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:20px;height:24px;margin:0;color:var(--brand);font:500 22px/1 system-ui,sans-serif;flex:none}
+:is(#app-screen,#modal-overlay) details[open]>summary::after{content:'−';transform:translateY(-50%)}
+#app-screen .record-adjustments>summary.adjustment-trigger{display:inline-flex;align-items:center;justify-content:flex-start;width:auto;min-height:40px;padding:8px 38px 8px 14px;margin:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-size:.8rem;font-weight:650;line-height:1.4;box-shadow:none}
+#app-screen .record-adjustments>summary.adjustment-trigger:hover{background:var(--surface-alt);border-color:var(--muted)}
+#app-screen .record-adjustments[open]>summary.adjustment-trigger{margin-bottom:12px}
+.record-edit-body:empty{display:none}.record-edit-body>.log-record-form,.record-edit-body>.log-catalog-form{margin-top:12px}
+#app-screen .nav-parent>.ui-icon:last-child{display:none}
+#app-screen .nav-parent::after{content:'+';display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;width:20px;height:24px;font:500 22px/1 system-ui,sans-serif;color:var(--brand)}
+#app-screen .nav-parent[aria-expanded=true]::after{content:'−'}
+@media(max-width:600px){#app-screen .record-adjustments>summary.adjustment-trigger{min-height:44px}}
