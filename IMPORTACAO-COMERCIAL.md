@@ -1,6 +1,6 @@
 # Importação de pedidos — Comercial / Vendas
 
-A coordenação, gerência e Diretoria têm o botão **Importar XLS** na página Comercial. O fluxo é: escolher ListaPedidos, definir o período/situações, conferir os vínculos entre Funcionário e participante do PDI, gerar a prévia e confirmar. A confirmação exige reconhecer que a exportação deve conter todos os pedidos dos vendedores/dias selecionados.
+Os responsáveis explicitamente autorizados no Comercial têm o botão **Importar XLS** na página Comercial. O fluxo é: escolher ListaPedidos, definir o período/situações, conferir os vínculos entre Funcionário e participante do PDI, gerar a prévia e confirmar. A confirmação exige reconhecer que a exportação deve conter todos os pedidos dos vendedores/dias selecionados.
 
 O leitor identifica o cabeçalho, ignora linhas vazias/observações/rodapé e concilia a quantidade e o valor final com o total geral quando não há erros na origem. Lê XLS BIFF e XLSX com SheetJS 0.20.3 local, em Worker, sem executar macros ou recalcular fórmulas. Limite de 20 MB, 100 mil linhas, 201 colunas e 30 segundos de leitura. O arquivo é processado no navegador; não é armazenado no Supabase.
 

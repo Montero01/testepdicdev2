@@ -4,7 +4,7 @@ O módulo usa o menu, login, temas, cartões, filtros, abas, controles de ajuste
 
 Acesse Desempenho → Comercial · Vendas. Coordenação/gerência deve abrir Regras da campanha e definir datas, metas e pontos. As datas não foram presumidas. Bitrix24 mantém 1 ponto por dia de uso; demais critérios só pontuam se ativados. Todas as mudanças de configuração geram log e recalculam a campanha.
 
-Participantes por `profiles.position`: Consultor(a) de Vendas e Coordenadora Comercial. Vendedor registra e consulta os próprios dados; coordenadora, gerências e Diretoria acompanham todos e podem registrar em nome de participantes, ajustar e excluir com justificativa. A autorização da coordenadora é exclusiva do Comercial; não altera seu role nem permissões dos outros setores.
+Participantes por `profiles.position`: Consultor(a) de Vendas e Coordenadora Comercial. Vendedor registra e consulta os próprios dados; somente os responsáveis explicitamente autorizados no Comercial acompanham todos e podem registrar em nome de participantes, ajustar e excluir com justificativa. A autorização da coordenadora é exclusiva do Comercial; não altera seu role nem permissões dos outros setores.
 
 Um registro ativo por participante/dia. Data até hoje e dentro da campanha. Dinheiro em centavos e áreas em milésimos de m². Conversão e ticket usam totais do recorte, sem média de percentuais diários. Conversão sem orçamento e ticket sem vendas ficam sem base (—). Habitat/Laminado podem se sobrepor e são validados individualmente contra o total.
 
@@ -23,3 +23,7 @@ Validação: 46 verificações SQL locais com perfis fictícios (permissões, RL
 ## Importação XLS
 
 Disponível a coordenação/gestão pelo botão Importar XLS. Consulte IMPORTACAO-COMERCIAL.md. Nos dias importados com indicadores pendentes, o vendedor pode complementar somente os campos ainda não informados. Esta exceção não permite alterar os indicadores já registrados ou vindos do relatório.
+
+## Acesso específico do Comercial
+
+A visão consolidada e as operações de gestão dependem de autorização específica no Comercial. Consultores de Vendas continuam restritos aos próprios registros. Gestão em Estoque, Logística ou outras áreas não concede Comercial. Consulte ACESSOS-COMERCIAL.md.
