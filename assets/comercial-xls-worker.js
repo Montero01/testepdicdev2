@@ -1,0 +1,1 @@
+'use strict';importScripts('xlsx-0.20.3.min.js','comercial-xls.js');self.onmessage=e=>{try{self.postMessage({ok:true,report:self.CDESalesXLS.parse(e.data,self.XLSX)});}catch(error){self.postMessage({ok:false,error:error.message||'Não foi possível ler a planilha.'});}};

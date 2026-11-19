@@ -19,3 +19,7 @@ Mesmo projeto Supabase e auditoria compartilhada: `pdi_sales_campaigns` (regras)
 CSV de lançamentos respeita acesso/período/participante. Log com pesquisa, consulta mensal, antes/depois, usuário e exportação; meses anteriores são consultados via CSV. Solicitações de exportação também são auditadas. Limite de 50 mil registros/eventos por consulta/exportação, com erro explícito para refinar o período. O CSV contém registros diários; indicadores consolidados deduplicam clientes no recorte.
 
 Validação: 46 verificações SQL locais com perfis fictícios (permissões, RLS, anonimato, unicidade, concorrência, validações, exclusões e auditoria); teste DOM do Comercial; 18 verificações de cálculos; testes existentes do PDI (169 interface, 46 CSS, 126 expansões, 22 gráficos, 25 arquivos). Na produção foram verificados a estrutura, os acessos calculados dos perfis e a ausência de lançamentos de teste. Sem inspeção visual em navegador ou login real nesta sessão, por indisponibilidade do controle de navegador no ambiente.
+
+## Importação XLS
+
+Disponível a coordenação/gestão pelo botão Importar XLS. Consulte IMPORTACAO-COMERCIAL.md. Nos dias importados com indicadores pendentes, o vendedor pode complementar somente os campos ainda não informados. Esta exceção não permite alterar os indicadores já registrados ou vindos do relatório.
