@@ -27,3 +27,7 @@ Disponível a coordenação/gestão pelo botão Importar XLS. Consulte IMPORTACA
 ## Acesso específico do Comercial
 
 A visão consolidada e as operações de gestão dependem de autorização específica no Comercial. Consultores de Vendas continuam restritos aos próprios registros. Gestão em Estoque, Logística ou outras áreas não concede Comercial. Consulte ACESSOS-COMERCIAL.md.
+
+## Metas e período de avaliação
+
+A campanha tem avaliação independente dos filtros de visualização, a partir de 15/11/2026. Inclui até três metas individuais e dois indicadores de crescimento de 20% sobre seis meses completos, com peso 3 cada. Importação e registro permitem dados históricos fora das datas da campanha. Consulte METAS-E-CRESCIMENTO-COMERCIAL.md, que atualiza as descrições anteriores de período e pontuação.
