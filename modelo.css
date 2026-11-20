@@ -69,8 +69,8 @@
 .app-sidebar .person-avatar{border-color:#718198}
 .button.primary{background:var(--action-start);background-image:linear-gradient(110deg,var(--action-start) 0%,var(--action-start) 18%,var(--action-end) 100%);border-color:var(--action-start);color:#fff;box-shadow:0 3px 9px rgb(185 0 36 / 12%)}
 .button.primary:hover{background:var(--action-hover-start);background-image:linear-gradient(110deg,var(--action-hover-start) 0%,var(--action-hover-start) 18%,var(--action-hover-end) 100%);border-color:var(--action-hover-start);color:#fff}
-#page-performance .pdi-perf button:not(.pdi-perf-secondary):not(:disabled){background:var(--action-start);background-image:linear-gradient(110deg,var(--action-start) 0%,var(--action-start) 18%,var(--action-end) 100%);border-color:var(--action-start);color:#fff}
-#page-performance .pdi-perf button:not(.pdi-perf-secondary):not(:disabled):hover{background-image:linear-gradient(110deg,var(--action-hover-start) 0%,var(--action-hover-start) 18%,var(--action-hover-end) 100%);color:#fff}
+
+
 .card,.stat-card,.personal-score,.login-layout,#page-performance .pdi-perf-card{border-color:var(--block-line);box-shadow:0 2px 6px rgb(15 25 40 / 4%)}
 .card-heading{border-bottom:1px solid var(--block-line);padding-bottom:13px}
 .goal-row,.certificate-row,.ranking-row,.sector-row,.bi-bar-row{border-bottom:1px solid var(--block-line)}

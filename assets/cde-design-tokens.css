@@ -1,0 +1,13 @@
+/* Degradês oficiais deste template de testes. Reutilizar os tokens, sem duplicar as cores. */
+:root{
+  --cde-control-border:0px;
+  --cde-control-radius:9px;
+  --cde-control-height:44px;
+  --cde-control-padding:9px 16px;
+  --cde-action-gradient:linear-gradient(110deg,#cc4b0a,#c52d25);
+  --cde-menu-border-gradient:linear-gradient(135deg,#ffb45f,#f58225,#ea5a16);
+}
+
+/* Uso em letras, sem caixa ou fundo colorido ao redor. */
+.cde-gradient-text{color:#cc4b0a}
+@supports ((background-clip:text) or (-webkit-background-clip:text)){.cde-gradient-text{background:var(--cde-action-gradient);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}}
