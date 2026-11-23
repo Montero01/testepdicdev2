@@ -24,3 +24,7 @@ Testes DOM/CSS com API simulada; não substituem inspeção visual ou login com 
 ## Retorno à versão anterior
 
 O commit-base acima identifica a versão completa anterior. A atualização é publicada em um único commit, permitindo reverter esse commit pela interface do GitHub se necessário. A cópia ZIP da versão anterior foi entregue separadamente. Não reexecute os SQLs existentes: esta atualização é de frontend.
+
+## Paleta dos botões — 23/11/2026
+
+Ações do PDI padronizadas com o CDE Academy: azul `#1d3d5d` no tema claro e `#315573` no escuro, com texto branco e contraste AA. Controles de ícone usam superfície neutra. A folha `assets/botoes-cde.css`, carregada por último, cobre as páginas gerais, formulários, modais e módulos de Desempenho. CSV permanece discreto. Os degradês da marca continuam disponíveis para o rodapé e a borda do Menu/Fechar. Sem alteração de JavaScript, operações, dados ou permissões.

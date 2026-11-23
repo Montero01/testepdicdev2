@@ -5,8 +5,9 @@ sys.path.insert(0,'/tmp/cde-css-libs')
 import tinycss2,cssselect2
 from lxml import html
 base=Path(__file__).resolve().parents[1]
-css='\n'.join((base/f).read_text() for f in ['assets/desempenho.css','modelo.css','assets/cde-design-tokens.css','assets/pdi-visual.css','assets/logistica-visual.css'])
+css='\n'.join((base/f).read_text() for f in ['assets/desempenho.css','modelo.css','assets/cde-design-tokens.css','assets/pdi-visual.css','assets/logistica-visual.css','assets/botoes-cde.css'])
 fixture='''<div class="logistics"><section class="card" id="card"><button class="button primary" id="log-save">Registrar</button><button class="button secondary" id="log-edit">Ajustes</button><button class="button danger log-delete-x" id="log-delete">×</button><form class="management-actions fuel-month-controls" id="month-controls"><div class="field fuel-month-field"><input type="month" id="month-input"></div><button class="button secondary">Consultar</button></form></section><div class="stats-grid" id="kpis"></div><details class="performance-export"><button class="button secondary" id="log-export">CSV</button></details></div><section class="performance-modules"><button class="button secondary performance-module-action" id="module-open">Abrir Logística</button></section>'''
+fixture+='<button class="button primary" id="general-action">Criar nova meta</button><button class="button secondary" id="general-edit">Editar</button><button class="button danger" id="general-delete">Excluir</button>'
 rules=tinycss2.parse_stylesheet(css,skip_comments=True,skip_whitespace=True)
 # Carrega apenas o avaliador da bateria anterior, sem executar seus contratos de outro HTML.
 source=r'''def syntax(rs):
@@ -69,9 +70,11 @@ for theme in ['light','dark']:
    s=styles(theme,width,height)
    assert s['app-sidebar']['width']==('calc(100vw - 24px)' if width<=480 else 'min(360px,calc(100vw - 32px))' if width<=960 else '270px');checks+=1
    assert s['menu-toggle']['display']==('flex' if width<=960 else 'none');checks+=1
-   for id in ['log-save','log-edit','log-delete','module-open','pcp-save','pcp-edit']:
-    assert s[id]['background']==('#16314f' if theme=='light' else '#080a0e'),(id,theme,s[id]['background'])
-    assert s[id]['border']=='0';assert s[id]['color']in('#fff','white');assert s[id]['min-height']=='44px';checks+=4
+   for id in ['general-action','general-edit','general-delete','log-save','log-edit','log-delete','module-open','pcp-save','pcp-edit']:
+    assert s[id]['background']==('#1d3d5d' if theme=='light' else '#315573'),(id,theme,s[id]['background'])
+    assert s[id]['border']=='0';assert contrast(s[id]['color'],s[id]['background'])>=4.5;assert s[id]['color']in('#fff','white');assert s[id]['min-height']=='44px';checks+=4
+   for id in ['modal-close','password-toggle']:
+    assert s[id]['background']==('#edf2f7' if theme=='light' else '#263447');assert contrast(s[id]['color'],s[id]['background'])>=4.5;checks+=2
    for id in ['log-export','pcp-export']:assert s[id]['background']=='transparent';assert s[id]['min-height']=='36px';checks+=2
    assert s['log-delete']['width']==s['log-delete']['height']=='44px';checks+=1
    assert s['card']['background']==('#fff' if theme=='light' else '#1a222e');checks+=1

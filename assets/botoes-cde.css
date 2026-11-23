@@ -1,0 +1,27 @@
+/* Paleta compartilhada com o CDE Academy. Degradês da marca permanecem nos detalhes. */
+:root{--cde-action-bg:#1d3d5d;--cde-action-hover:#274e73;--cde-tool-bg:#edf2f7;--cde-tool-hover:#dfe8f1;--cde-tool-text:#27445f}
+:root[data-theme=dark]{--cde-action-bg:#315573;--cde-action-hover:#3b6587;--cde-tool-bg:#263447;--cde-tool-hover:#33465d;--cde-tool-text:#edf3fa}
+body :is(.button,.button.primary,.button.danger),
+.app-main .performance-modules .performance-module-action,
+#page-performance .pdi-perf button,
+.stock-page .button,
+.logistics :is(.button.primary,.button.secondary,.button.danger,.button,.adjustment-trigger){background:var(--cde-action-bg);background-image:none;border:0;color:#fff;box-shadow:none}
+body :is(.button,.button.primary,.button.danger):hover,
+.app-main .performance-modules .performance-module-action:hover,
+#page-performance .pdi-perf button:hover,
+.stock-page .button:hover,
+.logistics :is(.button.primary,.button.secondary,.button.danger,.button,.adjustment-trigger):hover{background:var(--cde-action-hover);background-image:none;color:#fff;box-shadow:none;transform:none;filter:none}
+:root body .icon-button{background:var(--cde-tool-bg);background-image:none;color:var(--cde-tool-text);border:0;box-shadow:none}
+:root body .icon-button:hover{background:var(--cde-tool-hover);color:var(--cde-tool-text);transform:none;filter:none}
+body :is(.button,.icon-button) .ui-icon{color:inherit}
+/* Arquivos continuam discretos, sem perder os controles de acesso ou seus logs. */
+.performance-export button.button,
+#page-performance .pdi-perf .performance-export button.button,
+#page-performance .pdi-perf .cde-audit .audit-controls button[type=button],
+.logistics .performance-export :is(button.button,summary),
+.logistics .audit-controls button[type=button]{background:transparent;background-image:none;color:var(--muted);border:0;box-shadow:none}
+.performance-export button.button:hover,
+#page-performance .pdi-perf .performance-export button.button:hover,
+#page-performance .pdi-perf .cde-audit .audit-controls button[type=button]:hover,
+.logistics .performance-export :is(button.button,summary):hover,
+.logistics .audit-controls button[type=button]:hover{background:var(--surface-alt);background-image:none;color:var(--text);filter:none}
