@@ -2,6 +2,8 @@
 
 O módulo usa o mesmo Supabase do PDI. Não cria outra base nem replica tabelas dos demais setores. Empresas e produtos são compartilhados entre vendas, produção, financeiro e Estoque E.G.; os lançamentos operacionais ficam em uma matriz `pdi_eg_records`, com razão de estoque e auditoria próprios.
 
+O acesso principal é **Desempenho → Erika Glass**. Dentro dele, os botões **Desempenho** e **Estoque** organizam os processos autorizados. Não há dois cartões separados de E.G. no menu de desempenho.
+
 ## Acessos
 
 - Adriane Pinheiro Campos: coordenação, catálogo/importação, empresas, vendas, visitas, conferência, preparo e financeiro.
