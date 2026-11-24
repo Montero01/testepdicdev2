@@ -27,5 +27,140 @@
  function stock(host,d,caption){const area=v=>`${num(v)} m²`,series=d.daily||[],complete=Number(d.complete_m2||0),waste=d.wasted_m2===null?null:Number(d.wasted_m2);return charts(host,{key:'stock',caption,panels:[{type:'bar',title:'Dias com mais movimentações',metrics:[{key:'entries',label:'Quantidade de movimentações',rows:(d.top_days||[]).map(r=>({label:day(r.date),value:r.movements}))}]},{type:'line',title:'M² movimentados por dia',metrics:[{key:'m2',label:'Área movimentada',format:area,rows:series.map(r=>({date:r.date,value:r.m2}))}]},{type:'pie',title:'Aproveitamento das chapas conferidas',metrics:[{key:'waste',label:'Registros conferidos pelo Jackson',format:area,rows:[{label:'Área sem desperdício',value:waste===null?null:complete-waste},{label:'Área desperdiçada',value:waste}]}],note:'Ausência de conferência não é desperdício zero.'},{type:'scatter',title:'Frequência × área movimentada',metrics:[{key:'daily',label:'Dias do período',xLabel:'Movimentações',yLabel:'M² movimentados',xFormat:num,yFormat:area,rows:series.map(r=>({label:day(r.date),x:r.movements,y:r.m2}))}]}]});}
  function organize(root,{key,canManage=false}){root.classList.add('sector-dashboard');root.querySelector('.pdi-perf-heading')?.classList.add('view-heading');const available=[...new Set([...root.querySelectorAll('[data-sector-pane]')].map(n=>n.dataset.sectorPane))];if(!available.includes('overview')){const intro=el('section','pdi-perf-card sector-personal');intro.dataset.sectorPane='overview';intro.append(el('h2','','Visão Geral'),el('p','pdi-perf-muted',key==='pcp'?'Acompanhe seus registros nas abas Registro diário e Lançamentos. Os indicadores consolidados são exclusivos da supervisão e gestão autorizadas.':'Acompanhe seu fechamento nas abas Registro diário e Lançamentos. Os indicadores consolidados são exclusivos da gestão autorizada.'));root.append(intro);available.unshift('overview');}const names={overview:'Visão Geral',entry:'Registro diário',history:'Lançamentos',waste:'Desperdício',audit:'Log gerencial'},nav=el('nav','log-tabs sector-tabs');nav.setAttribute('aria-label',`Seções de ${key==='pcp'?'PCP':'Caixa'}`);let selected=sectorViews.get(key)||'overview';if(!available.includes(selected))selected='overview';const draw=()=>{sectorViews.set(key,selected);for(const n of root.querySelectorAll('[data-sector-pane]'))n.hidden=n.dataset.sectorPane!==selected;for(const n of root.querySelectorAll('[data-sector-common]'))n.hidden=!['overview','history','waste'].includes(selected);nav.querySelectorAll('button').forEach(b=>{const yes=b.dataset.sectorTarget===selected;b.className=`button ${yes?'primary':'secondary'}`;b.setAttribute('aria-pressed',String(yes));});};for(const k of Object.keys(names).filter(k=>available.includes(k))){const b=el('button','button secondary',names[k]);b.type='button';b.dataset.sectorTarget=k;b.addEventListener('click',()=>{if(root.getAttribute('aria-busy')==='true')return;selected=k;draw();});nav.append(b);}root.insertBefore(nav,root.children[1]||null);draw();}
  function sales(host,d,caption){const groups=d.ranking,area=v=>num(v/1000)+' m²';return charts(host,{key:'sales',caption,panels:[{type:'bar',title:'Vendas por participante',metrics:[['salesValue','Valor vendido',money],['salesQty','Quantidade de vendas',num],['salesArea','Área vendida',area],['habitatValue','Habitat · R$',money],['habitatArea','Habitat · m²',area],['laminatedValue','Laminado · R$',money],['laminatedArea','Laminado · m²',area],['quotesQty','Orçamentos · quantidade',num],['quotesValue','Valor orçado',money],['conversion','Conversão (%)',v=>num(v)+'%'],['ticket','Ticket médio',money],['customers','Novos clientes',num],['errorsQty','Reposições · quantidade',num],['errorsValue','Reposições · R$',money],['errorsArea','Reposições · m²',area],['fullQty','Sem desconto · quantidade',num],['fullValue','Sem desconto · R$',money],['bitrix','Bitrix24 · pontos',num]].map(([key,label,format])=>({key,label,format,rows:groups.map(r=>({label:r.name,value:r[key]}))}))},{type:'pie',title:'Vendas sem desconto',metrics:[{key:'discount',label:'Quantidade de vendas',rows:[{label:'Sem desconto',value:d.total.fullQty},{label:'Demais vendas',value:d.total.salesQty===null||d.total.fullQty===null?null:d.total.salesQty-d.total.fullQty}]}],note:'Categorias exclusivas por quantidade. Habitat e Laminado não compõem esta pizza.'},{type:'line',title:'Evolução diária e tendência',metrics:[['salesValue','Valor vendido',money],['salesQty','Quantidade de vendas',num],['conversion','Conversão (%)',v=>num(v)+'%']].map(([key,label,format])=>({key,label,format,rows:d.daily.map(r=>({date:r.date,value:r[key]}))}))},{type:'scatter',title:'Orçamentos × vendas',metrics:[{key:'quotes',label:'Quantidade por participante',xLabel:'Orçamentos',yLabel:'Vendas',rows:groups.map(r=>({label:r.name,x:r.quotesQty,y:r.salesQty}))}],note:'Relação de volumes no recorte, sem vínculo individual entre orçamento e pedido.'}]});}
- window.CDECharts=Object.freeze({sales,pcp,cash,logistics,stock,organize,math:Object.freeze({regression})});
+ // E.G.: relatório diário, agenda e pedido são fontes distintas, nunca somadas como o mesmo evento.
+ function erikaData(records,{personName=id=>String(id||'Responsável não identificado')}={}){
+  if(!Array.isArray(records))throw Error('Os gráficos E.G. precisam de uma lista de registros.');
+  const identified=new Map(),anonymous=[];let duplicateCount=0;
+  for(const record of records){
+   if(!record||typeof record!=='object')continue;
+   const id=record.id==null?'':String(record.id);
+   if(!id){anonymous.push(record);continue;}
+   const old=identified.get(id);
+   if(old){duplicateCount++;if(Number(record.revision||0)<Number(old.revision||0))continue;}
+   identified.set(id,record);
+  }
+  const active=[...identified.values(),...anonymous].filter(record=>record.active!==false);
+  const add=(rows,key,{absent=null}={})=>{
+   if(!rows.length)return absent;
+   let total=0n;
+   for(const record of rows){const value=record.data?.[key];
+    if(value===null||value===undefined||value===''||!['number','string'].includes(typeof value))return null;
+    const n=Number(value);if(!Number.isSafeInteger(n)||n<0)return null;total+=BigInt(n);
+   }
+   if(total>BigInt(Number.MAX_SAFE_INTEGER))throw Error('O total dos gráficos E.G. excede a precisão segura.');
+   return Number(total);
+  };
+  const summarize=rows=>{
+   const reports=rows.filter(record=>record.kind==='report'),orders=rows.filter(record=>record.kind==='order'),visits=rows.filter(record=>record.kind==='visit'),prepared=rows.filter(record=>record.kind==='preparation'),receipts=rows.filter(record=>record.kind==='receipt');
+   const sold=add(orders,'total_cents',{absent:0}),quotes=add(reports,'quotes');
+   return {visits:add(reports,'visits'),quotes,quoted_cents:add(reports,'quoted_cents'),orders:orders.length,sold_cents:sold,
+    ticket_cents:orders.length&&sold!==null?Number((BigInt(sold)+BigInt(Math.floor(orders.length/2)))/BigInt(orders.length)):null,
+    conversion:quotes>0?orders.length/quotes*100:null,
+    planned_visits:visits.filter(record=>record.status==='planned').length,done_visits:visits.filter(record=>record.status==='done').length,
+    prepared:add(prepared,'quantity',{absent:0}),preparation_entries:prepared.length,received_cents:add(receipts,'amount_cents',{absent:0}),report_count:reports.length};
+  };
+  const people=new Map(),dates=new Map();let invalidDateCount=0;
+  for(const record of active){
+   const id=String(record.subject_id||'');if(!people.has(id))people.set(id,[]);people.get(id).push(record);
+   const date=record.work_date,stamp=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)?Date.parse(date+'T12:00:00Z'):NaN;
+   if(!Number.isFinite(stamp)||new Date(stamp).toISOString().slice(0,10)!==date){invalidDateCount++;continue;}
+   if(!dates.has(date))dates.set(date,[]);dates.get(date).push(record);
+  }
+  const ranking=[...people].map(([id,rows])=>({id,name:personName(id)||'Responsável não identificado',...summarize(rows)}));
+  const daily=[...dates].sort(([a],[b])=>a.localeCompare(b)).map(([date,rows])=>({date,...summarize(rows)}));
+  const orders=active.filter(record=>record.kind==='order'),visits=active.filter(record=>record.kind==='visit');
+  const orderStatus=[{label:'Fechados, a entregar',value:orders.filter(record=>record.status==='closed').length},{label:'Entregues',value:orders.filter(record=>record.status==='delivered').length},{label:'Outras situações ativas',value:orders.filter(record=>!['closed','delivered'].includes(record.status)).length}];
+  const visitStatus=[{label:'Agendadas',value:visits.filter(record=>record.status==='planned').length},{label:'Concluídas',value:visits.filter(record=>record.status==='done').length},{label:'Outras situações ativas',value:visits.filter(record=>!['planned','done'].includes(record.status)).length}];
+  const orderPayments=[{label:'À vista · condição do pedido',value:orders.filter(record=>record.data?.payment==='cash').length},{label:'Boleto · condição do pedido',value:orders.filter(record=>record.data?.payment==='boleto').length},{label:'Condição não informada',value:orders.filter(record=>!['cash','boleto'].includes(record.data?.payment)).length}];
+  const products=new Map();for(const record of active.filter(record=>record.kind==='preparation')){
+   const quantity=record.data?.quantity;if(!Number.isSafeInteger(Number(quantity))||quantity===null||quantity===undefined||quantity===''||!['number','string'].includes(typeof quantity)||Number(quantity)<0)continue;
+   const key=String(record.data?.product_id||record.data?.product_name||'Não informado'),previous=products.get(key)||{label:record.data?.product_name||'Produto não informado',value:0};
+   const value=BigInt(previous.value)+BigInt(Number(quantity));if(value>BigInt(Number.MAX_SAFE_INTEGER))throw Error('A quantidade preparada excede a precisão segura.');
+   previous.value=Number(value);products.set(key,previous);
+  }
+  return {total:summarize(active),ranking,daily,orderStatus,visitStatus,orderPayments,preparedProducts:[...products.values()],duplicateCount,invalidDateCount};
+ }
+ function erikaSum(values){
+  if(values.some(value=>value===null||value===undefined||value===''||!['number','string'].includes(typeof value)||!Number.isSafeInteger(Number(value))))return null;
+  const total=values.reduce((sum,value)=>sum+BigInt(Number(value)),0n);if(total>BigInt(Number.MAX_SAFE_INTEGER)||total<BigInt(Number.MIN_SAFE_INTEGER))throw Error('Total dos gráficos E.G. acima da precisão segura.');return Number(total);
+ }
+ function erikaFinanceData(schedule,{start='',end=''}={}){
+  const seen=new Set(),rows=[];let omittedDates=0;
+  for(const row of schedule||[]){
+   const key=row.id&&row.order_id?String(row.order_id)+':'+String(row.id):null;if(key&&seen.has(key))continue;if(key)seen.add(key);
+   const stamp=/^\d{4}-\d{2}-\d{2}$/.test(row.date||'')?Date.parse(row.date+'T12:00:00Z'):NaN;
+   if(!Number.isFinite(stamp)||new Date(stamp).toISOString().slice(0,10)!==row.date){omittedDates++;continue;}
+   if(start&&row.date<start||end&&row.date>end)continue;rows.push(row);
+  }
+  const aggregate=list=>({expected_cents:erikaSum(list.map(row=>row.amount_cents)),paid_cents:erikaSum(list.map(row=>row.paid_cents)),remaining_cents:erikaSum(list.map(row=>row.remaining_cents))});
+  const companies=new Map(),dates=new Map();for(const row of rows){const key=String(row.company_id||row.company_name||'Não informado');if(!companies.has(key))companies.set(key,[]);companies.get(key).push(row);if(!dates.has(row.date))dates.set(row.date,[]);dates.get(row.date).push(row);}
+  const total=aggregate(rows),compositionValid=rows.length>0&&total.expected_cents!==null&&total.paid_cents!==null&&total.remaining_cents!==null&&total.paid_cents>=0&&total.remaining_cents>=0&&BigInt(total.expected_cents)===BigInt(total.paid_cents)+BigInt(total.remaining_cents)&&rows.every(row=>row.amount_cents!==null&&row.paid_cents!==null&&row.remaining_cents!==null&&Number(row.paid_cents)>=0&&Number(row.remaining_cents)>=0&&Number(row.amount_cents)===Number(row.paid_cents)+Number(row.remaining_cents));
+  return {rows,omittedDates,total,compositionValid,companies:[...companies].map(([id,list])=>({id,label:list[0].company_name||'Empresa não informada',count:list.length,...aggregate(list)})),daily:[...dates].sort(([a],[b])=>a.localeCompare(b)).map(([date,list])=>({date,...aggregate(list)}))};
+ }
+ function erikaFinance(host,d,caption){
+  const data=erikaFinanceData(d.finance?.schedule||[],{start:d.start||'',end:d.end||''});
+  const metric=(key,label)=>({key,label,format:money,rows:data.companies.map(row=>({label:row.label,value:row[key]}))});
+  return charts(host,{key:'erika-'+(d.section||'overview'),caption:`${caption} · Carteira selecionada pela data de vencimento. Baixas são acumuladas até a consulta, não somente no período.`,panels:[
+   {type:'bar',title:'Carteira por empresa',metrics:[metric('expected_cents','Valor previsto por empresa'),metric('remaining_cents','Saldo em aberto por empresa'),metric('paid_cents','Valor baixado da carteira por empresa')],note:'Valores da carteira com vencimento selecionado; não representam receita ou saldo bancário.'},
+   {type:'pie',title:'Composição da carteira selecionada',metrics:[{key:'portfolio',label:'Baixado × saldo em aberto',format:money,rows:data.compositionValid?[{label:'Baixado acumulado das parcelas',value:data.total.paid_cents},{label:'Saldo em aberto das parcelas',value:data.total.remaining_cents}]:[]}],note:data.compositionValid?'Cada centavo da carteira pertence à parte baixada ou ao saldo aberto. Parcelas não são novos pedidos.':'Sem composição completa e não negativa; valores ausentes ou negativos não viram fatias ou zero.'},
+   {type:'line',title:'Vencimentos da carteira',metrics:[['expected_cents','Valores previstos por vencimento'],['remaining_cents','Valores ainda abertos por vencimento'],['paid_cents','Baixado acumulado por vencimento']].map(([key,label])=>({key,label,format:money,rows:data.daily.map(row=>({date:row.date,value:row[key]}))})),note:`Data do eixo: vencimento da parcela, não data da baixa. Tendência descritiva não é previsão de recebimento.${data.omittedDates?' '+data.omittedDates+' parcela(s) sem data válida omitida(s).':''}`},
+   {type:'scatter',title:'Previsto × aberto por empresa',metrics:[{key:'portfolio_companies',label:'Carteira por empresa',xLabel:'Valor previsto',yLabel:'Saldo em aberto',xFormat:money,yFormat:money,rows:data.companies.map(row=>({label:row.label,x:row.expected_cents,y:row.remaining_cents}))}],note:'Cada ponto é uma empresa na carteira do recorte; não é um diagnóstico de capacidade de pagamento.'}
+  ]});
+ }
+ function erikaStockData(records,moves=[],products=[]){
+  const identified=new Map(),anonymous=[];for(const row of records||[]){if(!row||typeof row!=='object')continue;if(!row.id){anonymous.push(row);continue;}const old=identified.get(String(row.id));if(!old||Number(row.revision||0)>=Number(old.revision||0))identified.set(String(row.id),row);}
+  const active=[...identified.values(),...anonymous].filter(row=>row.active!==false&&['stock_entry','transfer','preparation'].includes(row.kind)),productMap=new Map(products.map(product=>[String(product.id),product])),groups=new Map(),dates=new Map();let omittedDates=0,unknownQuantities=0;
+  const get=(id,name)=>{const key=String(id||name||'Não informado');if(!groups.has(key))groups.set(key,{id:key,label:name||productMap.get(key)?.name||'Produto não informado',entries:[],transfers:[],prepared:[],warehouse:[],raw:[],ready:[]});return groups.get(key);};
+  for(const row of active){
+   const date=row.work_date,stamp=/^\d{4}-\d{2}-\d{2}$/.test(date||'')?Date.parse(date+'T12:00:00Z'):NaN,dateValid=Number.isFinite(stamp)&&new Date(stamp).toISOString().slice(0,10)===date;
+   if(!dateValid)omittedDates++;else if(!dates.has(date))dates.set(date,{date,entries:[],transfers:[],prepared:[]});
+   const key=row.kind==='stock_entry'?'entries':row.kind==='transfer'?'transfers':'prepared',items=row.kind==='preparation'?[{product_id:row.data?.product_id,name:row.data?.product_name,quantity:row.data?.quantity}]:row.data?.items||[];
+   for(const item of items){const quantity=item.quantity;if(quantity===null||quantity===undefined||quantity===''||!['number','string'].includes(typeof quantity)||!Number.isSafeInteger(Number(quantity))||Number(quantity)<0){unknownQuantities++;continue;}const group=get(item.product_id,item.name);group[key].push(Number(quantity));if(dateValid)dates.get(date)[key].push(Number(quantity));}
+  }
+  const moveIds=new Set();for(const move of moves||[]){if(move.id&&moveIds.has(String(move.id)))continue;if(move.id)moveIds.add(String(move.id));if(!['warehouse','raw','ready'].includes(move.location))continue;const q=move.quantity;if(q===null||q===undefined||q===''||!['number','string'].includes(typeof q)||!Number.isSafeInteger(Number(q))){unknownQuantities++;continue;}get(move.product_id,productMap.get(String(move.product_id))?.name)[move.location].push(Number(q));}
+  const ranking=[...groups.values()].map(group=>({id:group.id,label:group.label,...Object.fromEntries(['entries','transfers','prepared','warehouse','raw','ready'].map(key=>[key,erikaSum(group[key])]))}));
+  const stages=['warehouse','raw','ready'].map((key,index)=>({label:['Almoxarifado','Matéria-prima E.G.','Produto pronto E.G.'][index],value:erikaSum(ranking.map(row=>row[key]))}));
+  return {ranking,daily:[...dates.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(row=>({date:row.date,entries:erikaSum(row.entries),transfers:erikaSum(row.transfers),prepared:erikaSum(row.prepared)})),stages,stageCompositionValid:unknownQuantities===0&&stages.every(row=>row.value!==null&&row.value>=0),omittedDates,unknownQuantities,events:[{label:'Entradas no almoxarifado',value:active.filter(row=>row.kind==='stock_entry').length},{label:'Transferências ao E.G.',value:active.filter(row=>row.kind==='transfer').length},{label:'Registros de preparo',value:active.filter(row=>row.kind==='preparation').length}]};
+ }
+ function erikaStock(host,d,caption){
+  const data=erikaStockData(d.records||[],d.moves||[],d.products||[]),metric=(key,label)=>({key,label,rows:data.ranking.map(row=>({label:row.label,value:row[key]}))});
+  return charts(host,{key:'erika-'+(d.section||'stock'),caption:`${caption} · Eventos respeitam o recorte. Saldos por estágio são a posição atual de todo o histórico autorizado, sem filtro de data.`,panels:[
+   {type:'bar',title:'Movimentação de produtos',metrics:[metric('entries','Unidades em entradas do período'),metric('transfers','Unidades transferidas no período'),metric('prepared','Unidades/kits preparados no período'),metric('warehouse','Saldo atual · almoxarifado'),metric('raw','Saldo atual · matéria-prima E.G.'),metric('ready','Saldo atual · produto pronto E.G.')],note:'Quantidades de eventos e saldos atuais são indicadores distintos; kits não são explodidos e somados novamente aos componentes.'},
+   {type:'pie',title:'Composição dos registros de estoque',metrics:[{key:'stock_events',label:'Eventos ativos por tipo',rows:data.events},{key:'current_stages',label:'Posição atual · unidades registradas por estágio',rows:data.stageCompositionValid?data.stages:[]}],note:'Eventos são contagens exclusivas. A posição atual conta unidades cadastrais de itens/kits e não representa m², peso ou valor financeiro.'},
+   {type:'line',title:'Movimentações por dia',metrics:[['entries','Entradas · quantidade'],['transfers','Transferências · quantidade'],['prepared','Preparos · quantidade']].map(([key,label])=>({key,label,rows:data.daily.map(row=>({date:row.date,value:row[key]}))})),note:`Data do evento original. Confirmar o recebimento de uma transferência não cria uma segunda saída.${data.omittedDates?' '+data.omittedDates+' evento(s) sem data válida omitido(s).':''}${data.unknownQuantities?' Há '+data.unknownQuantities+' quantidade(s) inválida(s), que exigem conferência.':''}`},
+   {type:'scatter',title:'Entradas × transferências por produto',metrics:[{key:'stock_flow',label:'Volumes registrados no período',xLabel:'Unidades em entradas',yLabel:'Unidades transferidas',rows:data.ranking.map(row=>({label:row.label,x:row.entries,y:row.transfers}))},{key:'raw_ready',label:'Posição atual · matéria-prima × pronto',xLabel:'Unidades atuais · matéria-prima',yLabel:'Unidades atuais · pronto',rows:data.ranking.map(row=>({label:row.label,x:row.raw,y:row.ready}))}],note:'Não calcula consumo, perda ou rendimento produtivo. Saldo atual usa o histórico inteiro, enquanto eventos usam o período selecionado.'}
+  ]});
+ }
+
+ function erika(host,d={},caption='Registros ativos no período e filtros selecionados.'){
+  if(d.section==='finance')return erikaFinance(host,d,caption);
+  if(d.section==='stock')return erikaStock(host,d,caption);
+  const personName=id=>{const provided=(d.people||[]).find(person=>String(person.id)===id);return provided?.full_name||provided?.name||window.CDEModelData?.getPerson?.(id)?.full_name||'Responsável não identificado';};
+  const analysis=erikaData(d.records||[],{personName}),groups=analysis.ranking,total=analysis.total;
+  const metric=(key,label,format=num)=>({key,label,format,rows:groups.map(row=>({label:row.name,value:row[key]}))});
+  const barMetrics=[metric('orders','Pedidos fechados · quantidade'),metric('sold_cents','Valor dos pedidos',money),metric('quotes','Orçamentos do relatório · quantidade'),metric('quoted_cents','Valor orçado no relatório',money),metric('visits','Visitas do relatório diário'),metric('done_visits','Visitas concluídas na agenda'),metric('planned_visits','Visitas agendadas'),metric('prepared','Produtos/kits preparados')];
+  if(d.finance!==null&&d.finance!==undefined)barMetrics.push(metric('received_cents','Baixas de recebimento no período',money));
+  const lineMetrics=[['sold_cents','Valor dos pedidos',money],['orders','Pedidos · quantidade',num],['quotes','Orçamentos do relatório',num],['quoted_cents','Valor orçado no relatório',money],['visits','Visitas do relatório diário',num],['done_visits','Visitas concluídas na agenda',num],['planned_visits','Visitas agendadas',num],['prepared','Produtos/kits preparados',num]].map(([key,label,format])=>({key,label,format,rows:analysis.daily.map(row=>({date:row.date,value:row[key]}))}));
+  if(d.finance!==null&&d.finance!==undefined)lineMetrics.push({key:'received_cents',label:'Baixas registradas no período',format:money,rows:analysis.daily.map(row=>({date:row.date,value:row.received_cents}))});
+  const preferred=d.section==='production'?'prepared':total.orders?'orders':total.report_count?'quotes':total.prepared?'prepared':total.done_visits?'done_visits':'planned_visits';
+  const prioritize=list=>{const index=list.findIndex(metric=>metric.key===preferred);return index>0?[list[index],...list.slice(0,index),...list.slice(index+1)]:list;};
+  const pieMetrics=[{key:'order_status',label:'Pedidos por situação',rows:analysis.orderStatus},{key:'visit_status',label:'Agenda por situação',rows:analysis.visitStatus},{key:'order_payment',label:'Condição informada nos pedidos',rows:analysis.orderPayments},{key:'prepared_products',label:'Produtos/kits preparados · quantidade',rows:analysis.preparedProducts}];
+  if(d.section==='production')pieMetrics.unshift(...pieMetrics.splice(3,1));
+  else if(!total.orders){const index=total.planned_visits||total.done_visits?1:total.prepared?3:0;if(index)pieMetrics.unshift(...pieMetrics.splice(index,1));}
+  const scatterMetrics=[{key:'quotes_orders',label:'Orçamentos × pedidos',xLabel:'Orçamentos do relatório',yLabel:'Pedidos registrados',rows:groups.map(row=>({label:row.name,x:row.quotes,y:row.orders}))},{key:'visits_quotes',label:'Visitas do relatório × orçamentos',xLabel:'Visitas do relatório',yLabel:'Orçamentos do relatório',rows:groups.map(row=>({label:row.name,x:row.visits,y:row.quotes}))},{key:'orders_value',label:'Pedidos × valor registrado',xLabel:'Pedidos registrados',yLabel:'Valor dos pedidos',yFormat:money,rows:groups.map(row=>({label:row.name,x:row.orders,y:row.sold_cents}))},{key:'preparation_volume',label:'Preparos × quantidade preparada',xLabel:'Registros de preparo',yLabel:'Produtos/kits preparados',rows:groups.map(row=>({label:row.name,x:row.preparation_entries,y:row.prepared}))},{key:'agenda',label:'Agenda: agendadas × concluídas',xLabel:'Visitas agendadas',yLabel:'Visitas concluídas',rows:groups.map(row=>({label:row.name,x:row.planned_visits,y:row.done_visits}))}];
+  const scatterPreferred=d.section==='production'?'preparation_volume':total.report_count?'quotes_orders':total.orders?'orders_value':total.prepared?'preparation_volume':'agenda';
+  const scatterIndex=scatterMetrics.findIndex(metric=>metric.key===scatterPreferred);if(scatterIndex>0)scatterMetrics.unshift(...scatterMetrics.splice(scatterIndex,1));
+  const section=charts(host,{key:'erika-'+(d.section||'overview'),caption,panels:[
+   {type:'bar',title:'Atividade E.G. por responsável',metrics:prioritize(barMetrics),note:'Visitas e orçamentos do relatório diário permanecem separados da agenda. Quantidade de pedidos não é quantidade de itens nem de parcelas.'},
+   {type:'pie',title:'Composição dos registros E.G.',metrics:pieMetrics,note:'Cada opção utiliza categorias exclusivas da própria fonte. Condição à vista/boleto não comprova recebimento; kits preparados não são somados novamente aos seus componentes.'},
+   {type:'line',title:'Evolução E.G. no período',metrics:prioritize(lineMetrics),note:'São usados somente os registros do recorte. Sem relatório diário, visitas/orçamentos permanecem ausentes; valores orçados do pedido não são somados aos relatórios.'},
+   {type:'scatter',title:'Volumes E.G. por responsável',metrics:scatterMetrics,note:'Cada ponto representa um responsável no recorte. Volumes não vinculam uma visita ou orçamento a um pedido e não demonstram causalidade.'}
+  ]});
+  const intro=section.querySelector('.sector-chart-intro');
+  if(analysis.duplicateCount)intro.append(el('p','muted',`${analysis.duplicateCount} repetição(ões) de identificador considerada(s) uma única vez, na revisão mais recente.`));
+  if(analysis.invalidDateCount)intro.append(el('p','muted',`${analysis.invalidDateCount} registro(s) sem data válida não entra(m) na evolução diária.`));
+  return section;
+ }
+
+ window.CDECharts=Object.freeze({sales,pcp,cash,logistics,stock,organize,erika,math:Object.freeze({regression,erikaData,erikaFinanceData,erikaStockData})});
 })();
