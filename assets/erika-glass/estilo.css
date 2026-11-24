@@ -33,3 +33,6 @@
 .erika-glass button.button.eg-delete:hover{color:#b42318!important;border-color:#b42318}
 .erika-glass .eg-full-portfolio{padding:12px;margin-block:16px;border:1px solid var(--eg-line);border-radius:9px}.erika-glass .eg-full-portfolio>summary{cursor:pointer;font-size:13px;font-weight:650;padding:6px}
 @media(max-width:600px){.erika-glass button.button.eg-export{min-height:44px}.erika-glass button.button.eg-delete{width:44px;min-width:44px;min-height:44px;height:44px;flex:0 0 44px}}
+
+/* Ações diretas do formulário não acompanham a altura dos campos de texto. */
+.erika-glass .eg-form>button.button{align-self:end;justify-self:start;width:fit-content;max-width:100%;min-height:44px}
