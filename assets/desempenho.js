@@ -79,7 +79,7 @@
   let activeModule = 'pcp';
   const isCashPosition = value => ['opdecaixa','opcaixa','operadordecaixa','operadoradecaixa','caixa'].includes(String(value || '').trim().toLowerCase().replace(/[.\s]+/g, ''));
   let epoch = 0, request = 0, busy = false, subscription;
-  let wasteData={rows:[],count:0},wastePage=0,recordWaste=new Map();
+  let wasteData={rows:[],count:0},wastePage=0,recordWaste=new Map(),recordWasteIds=new Map(),ownWasteToday=null,wasteDraft=crypto.randomUUID();
   let recordAdjustments=null;let page = 0, logPage = 0, rankPage = 0, dashboard = null, rows = [], count = 0, editId = null;
   let filters = { pcp: '', start: '', end: '' };
   function current(e) { return e === epoch && !!user; }
@@ -94,7 +94,7 @@
   }
   function reset() {
     cashController?.destroy(); cashController = null;
-    epoch++; request++; busy = false; context = null; dashboard = null; rows = []; wasteData={rows:[],count:0};recordWaste.clear();editId = null;
+    epoch++; request++; busy = false; context = null; dashboard = null; rows = []; wasteData={rows:[],count:0};recordWaste.clear();recordWasteIds.clear();ownWasteToday=null;wasteDraft=crypto.randomUUID();editId = null;
     root?.remove(); menu?.remove(); root = menu = null;
     const nav = $('#pdi-perf-employee-nav'); nav?.remove();
     const base = $('#pdi-perf-employee-base'); if (base) base.hidden = false;
@@ -207,13 +207,14 @@
       const dashboardQuery = context.can_manage
         ? db.rpc('pdi_pcp_dashboard', { p_start_date: filters.start, p_end_date: filters.end, p_pcp_id: filters.pcp || null })
         : Promise.resolve({ data: null });
-      const [list, today, summary, wasted] = await Promise.all([q, todayQuery, dashboardQuery,db.rpc('pdi_pcp_waste_entries',{p_start_date:filters.start,p_end_date:filters.end,p_pcp_id:filters.pcp||null,p_offset:wastePage*PAGE})]);
+      const todayWasteQuery=context.is_pcp?db.from('pdi_pcp_waste').select('id,entry_id,m2_wasted').eq('pcp_id',user.id).eq('work_date',context.today).maybeSingle():Promise.resolve({data:null});
+      const [list, today, summary, wasted, ownWaste] = await Promise.all([q, todayQuery, dashboardQuery,db.rpc('pdi_pcp_waste_entries',{p_start_date:filters.start,p_end_date:filters.end,p_pcp_id:filters.pcp||null,p_offset:wastePage*PAGE}),todayWasteQuery]);
       if (!current(e) || r !== request) return;
       if (list.error) throw list.error; if (today.error) throw today.error;
       if(wasted.error)throw wasted.error;wasteData={rows:wasted.data?.rows||[],count:wasted.data?.count||0};
-      rows = list.data || []; count = list.count || 0; editId = null;
-      const recordFiles=rows.length?await db.from('pdi_pcp_waste').select('entry_id,m2_wasted').in('entry_id',rows.map(row=>row.id)): {data:[]};
-      if(!current(e)||r!==request)return;if(recordFiles.error)throw recordFiles.error;recordWaste=new Map((recordFiles.data||[]).map(w=>[w.entry_id,w.m2_wasted]));
+      rows = list.data || []; count = list.count || 0; editId = null;ownWasteToday=ownWaste.error?null:ownWaste.data;
+      const recordFiles=rows.length?await db.from('pdi_pcp_waste').select('id,entry_id,m2_wasted').in('entry_id',rows.map(row=>row.id)): {data:[]};
+      if(!current(e)||r!==request)return;if(recordFiles.error)throw recordFiles.error;recordWaste=new Map((recordFiles.data||[]).map(w=>[w.entry_id,w.m2_wasted]));recordWasteIds=new Map((recordFiles.data||[]).filter(w=>w.id&&w.entry_id).map(w=>[w.entry_id,w.id]));
       dashboard = summary.error ? null : summary.data;
       render(today.data, notice, summary.error);
     } catch (error) { if (current(e) && r === request) {
@@ -232,6 +233,7 @@
     const msg = el('p', 'pdi-perf-status', notice); msg.setAttribute('role', 'status'); msg.setAttribute('aria-live', 'polite'); root.append(msg);
     if (context.can_collect && context.is_pcp) {
       const c = card(`Resultado PCP · ${day(context.today)}`); c.classList.add('pdi-perf-entry-card');c.dataset.sectorPane='entry';
+      if(ownWasteToday?.m2_wasted!==null&&ownWasteToday?.m2_wasted!==undefined)c.append(el('p','pdi-perf-muted',`Desperdício já informado para hoje: ${fmt(ownWasteToday.m2_wasted)} m². Complete sua análise normalmente; o aproveitamento fica pendente até que os dados estejam completos.`));
       if (today) {
         c.classList.add('pdi-perf-completed'); c.prepend(el('span','pdi-perf-access-badge','Dia registrado'));
         c.append(el('strong', 'pdi-perf-result', `Salvo: ${fmt(today.m2_saved)} m² · Analisado: ${today.m2_analyzed===null?'não informado':fmt(today.m2_analyzed)+' m²'}`), el('p', 'pdi-perf-muted', `Pedidos: ${today.order_numbers.join(', ') || 'Nenhum'}.
@@ -303,14 +305,54 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
     const daily=el('details','pcp-daily');daily.append(el('summary','','Métricas por dia'));for(const d of dashboard.daily||[]){const row=el('article','pdi-perf-record');row.append(el('h3','',day(d.date)),el('p','',`Analisado: ${areaValue(d.analyzed)} · Salvo: ${areaValue(d.saved)} · Desperdício: ${areaValue(d.wasted)}`),el('p','pdi-perf-muted',`Aproveitamento: ${percent(d.utilization_percent)} · ${d.pending_count} pendência(s)`));daily.append(row);}c.append(daily);
   }
   function renderWasteManagement(){
-    if(!dashboard?.can_record_waste)return;const c=card('Registrar desperdício por PCP',true);c.id='pdi-pcp-waste-management';c.dataset.sectorPane='waste';c.append(el('p','pdi-perf-muted','Use os filtros de PCP e período acima. Registre zero quando tiver confirmado que não houve desperdício. A quantidade é vinculada ao lançamento do PCP nesse dia.'));
-    if(!wasteData.rows.length)c.append(el('p','pdi-perf-empty','Nenhum lançamento do PCP encontrado para registrar desperdício.'));
-    for(const row of wasteData.rows){const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.pcp_name_snapshot}`),el('p','',`Analisado: ${areaValue(row.m2_analyzed)} · Salvo: ${areaValue(row.m2_saved)} · Desperdício: ${areaValue(row.m2_wasted)}`));
-      if(row.m2_analyzed===null)item.append(el('p','pdi-perf-muted','Registro antigo sem análise: a supervisão deve completar os m² analisados antes do desperdício.'));
-      else{window.CDEManagement.editor({host:item,label:'Ajustes do desperdício',alive:()=>!!user&&item.isConnected,isBusy:()=>busy,render:()=>{const form=el('form','pdi-perf-form'),amount=field(form,'M² desperdiçados','text',`waste-${row.id}`,row.m2_wasted===null?'':String(row.m2_wasted).replace('.',','));amount.inputMode='decimal';amount.required=true;amount.maxLength=13;let reason=null;if(row.waste_revision){reason=field(form,'Justificativa da correção (10 a 300 caracteres)','textarea',`waste-reason-${row.id}`);reason.required=true;reason.minLength=10;reason.maxLength=300;}const save=el('button','',row.waste_revision?'Corrigir desperdício':'Registrar desperdício');save.type='submit';form.append(save);form.addEventListener('submit',event=>{event.preventDefault();saveWaste(row,amount.value,reason?.value||'');});if(row.waste_revision)recordAdjustments?.({host:form,id:row.id,entity:'waste',inside:true,deleteLabel:'Excluir desperdício'});return form;}});}c.append(item);
-    }c.append(pager(wastePage,wasteData.count,n=>{wastePage=n;refresh().then(()=>{const d=$('#pdi-pcp-waste-management',root);if(d)d.open=true;});}));
+    if(!dashboard?.can_record_waste)return;
+    const c=card('Registrar desperdício por PCP');c.id='pdi-pcp-waste-management';c.dataset.sectorPane='waste';c.classList.add('pdi-perf-entry-card');
+    c.append(el('p','pdi-perf-muted','Registre o desperdício por PCP e data, mesmo antes do lançamento diário. Informe zero quando a conferência confirmar que não houve desperdício. Sem a análise do PCP, o aproveitamento permanece pendente.'));
+    const formEpoch=epoch,form=el('form','pdi-perf-form pdi-perf-waste-create-form'),pcpWrap=el('div','pdi-perf-field'),pcpLabel=el('label','','PCP responsável'),pcp=el('select');
+    pcp.id='pdi-perf-waste-create-pcp';pcp.name='waste-create-pcp';pcp.required=true;pcpLabel.htmlFor=pcp.id;const choose=el('option','','Selecione o PCP');choose.value='';pcp.append(choose);
+    for(const person of context.pcps||[]){const option=el('option','',`${person.name} · ${person.sector||'Sem setor'}`);option.value=person.id;pcp.append(option);}pcp.value=filters.pcp||'';pcpWrap.append(pcpLabel,pcp);form.append(pcpWrap);
+    const date=field(form,'Data do desperdício','date','waste-create-day',context.today),amount=field(form,'M² desperdiçados','text','waste-create-m2'),observation=field(form,'Observação / lista de reposições (até 300 caracteres)','textarea','waste-create-notes');date.required=true;date.min='2020-01-01';date.max=context.today;amount.required=true;amount.inputMode='decimal';amount.maxLength=13;amount.placeholder='Ex.: 0 ou 12,350';observation.maxLength=300;
+    const save=el('button','','Registrar desperdício');save.type='submit';form.append(save);
+    form.addEventListener('submit',event=>{event.preventDefault();if(!current(formEpoch)||!form.isConnected)return;const existing=wasteData.rows.find(row=>row.pcp_id===pcp.value&&row.work_date===date.value);if(existing?.waste_id){status('Já há desperdício para este PCP e dia. Abra Ajustes do desperdício no registro para corrigir com justificativa.',true);return;}saveWaste({pcp_id:pcp.value,work_date:date.value,m2_analyzed:existing?.m2_analyzed??null,m2_saved:existing?.m2_saved??null,waste_id:null,waste_revision:null,draft_id:wasteDraft},amount.value,observation.value);});c.append(form);
+    const history=el('section','pdi-perf-waste-history');history.append(el('h3','','Registros e conferências do período'));
+    if(!wasteData.rows.length)history.append(el('p','pdi-perf-empty','Nenhum registro encontrado no período. O formulário acima permanece disponível para registrar o desperdício.'));
+    for(const row of wasteData.rows){
+      const item=el('article','pdi-perf-record');item.append(el('h3','',`${day(row.work_date)} · ${row.pcp_name_snapshot}`),el('p','',`Analisado: ${areaValue(row.m2_analyzed)} · Salvo: ${areaValue(row.m2_saved)} · Desperdício: ${areaValue(row.m2_wasted)}`));
+      if(row.waste_notes)item.append(el('p','pdi-perf-muted',`Observações / lista de reposições: ${row.waste_notes}`));
+      if(row.m2_analyzed===null||row.m2_analyzed===undefined)item.append(el('p','pdi-perf-muted','Análise do PCP ainda não informada. O desperdício pode ser registrado ou corrigido; o aproveitamento permanece pendente.'));
+      const isCorrection=Boolean(row.waste_id),rowDraft=isCorrection?null:crypto.randomUUID();
+      window.CDEManagement.editor({host:item,label:'Ajustes do desperdício',alive:()=>current(formEpoch)&&item.isConnected,isBusy:()=>busy,render:()=>{
+        const edit=el('form','pdi-perf-form'),wasted=field(edit,'M² desperdiçados','text',`waste-${row.id}`,row.m2_wasted===null||row.m2_wasted===undefined?'':String(row.m2_wasted).replace('.',','));wasted.inputMode='decimal';wasted.required=true;wasted.maxLength=13;
+        const why=field(edit,isCorrection?'Justificativa da correção (10 a 300 caracteres)':'Observação / lista de reposições (até 300 caracteres)','textarea',`waste-reason-${row.id}`);why.maxLength=300;if(isCorrection){why.required=true;why.minLength=10;}
+        const submit=el('button','',isCorrection?'Corrigir desperdício':'Registrar desperdício');submit.type='submit';edit.append(submit);
+        edit.addEventListener('submit',event=>{event.preventDefault();if(!current(formEpoch)||!edit.isConnected)return;saveWaste({...row,draft_id:rowDraft},wasted.value,why.value);});
+        if(row.waste_id)recordAdjustments?.({host:edit,id:row.waste_id,entity:'waste',inside:true,deleteLabel:'Excluir desperdício'});
+        return edit;
+      }});history.append(item);
+    }
+    history.append(pager(wastePage,wasteData.count,n=>{wastePage=n;refresh();}));c.append(history);
   }
-  async function saveWaste(row,raw,reason){if(busy)return;let amount;try{amount=parseM2(raw);if(areaUnits(amount)+areaUnits(row.m2_saved)>areaUnits(row.m2_analyzed))throw new Error('Desperdício mais m² salvos não podem superar os analisados.');if(row.waste_revision&&(reason.trim().length<10||reason.length>300))throw new Error('Justifique a correção em 10 a 300 caracteres.');}catch(error){status(message(error),true);return;}const e=epoch;lock(true);try{const q=row.waste_revision?db.from('pdi_pcp_waste').update({m2_wasted:amount,reason:reason.trim()}).eq('entry_id',row.id).eq('revision',row.waste_revision).select('entry_id'):db.from('pdi_pcp_waste').insert({entry_id:row.id,m2_wasted:amount});const result=await q;if(!current(e))return;if(result.error)throw result.error;if(row.waste_revision&&!result.data?.length)throw new Error('O registro mudou. Atualize os dados antes de corrigir.');await refresh('Desperdício salvo e registrado no log de auditoria.');const d=$('#pdi-pcp-waste-management',root);if(d)d.open=true;}catch(error){if(current(e))status(message(error),true);}finally{if(current(e))lock(false);}}
+  async function saveWaste(row,raw,rawReason){
+    if(busy||!user||!dashboard?.can_record_waste)return;
+    let amount;const reason=String(rawReason||'').trim(),correction=Boolean(row.waste_id);
+    try{
+      amount=parseM2(raw);
+      if(!row.pcp_id||!(context.pcps||[]).some(person=>person.id===row.pcp_id))throw new Error('Selecione um PCP do seu acesso.');
+      const date=String(row.work_date||''),timestamp=Date.parse(date+'T00:00:00Z');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(timestamp)||new Date(timestamp).toISOString().slice(0,10)!==date||date>context.today)throw new Error('Informe uma data válida até hoje.');
+      if(row.m2_analyzed!==null&&row.m2_analyzed!==undefined&&areaUnits(amount)+areaUnits(row.m2_saved??'0')>areaUnits(row.m2_analyzed))throw new Error('Desperdício mais m² salvos não podem superar os analisados.');
+      if(correction&&(!Number.isInteger(row.waste_revision)||row.waste_revision<1))throw new Error('A revisão do desperdício não está disponível. Atualize a tela antes de corrigir.');
+      if(reason.length>300||(correction&&reason.length<10))throw new Error(correction?'Justifique a correção em 10 a 300 caracteres.':'A observação deve ter até 300 caracteres.');
+    }catch(error){status(message(error),true);return;}
+    const e=epoch;lock(true);
+    try{
+      const result=await db.rpc('pdi_pcp_waste_save',{p_pcp_id:row.pcp_id,p_day:row.work_date,p_m2_wasted:amount,p_id:row.waste_id||row.draft_id||wasteDraft,p_revision:correction?row.waste_revision:null,p_reason:reason||null});
+      if(!current(e))return;if(result.error){if(result.error.code==='23505')throw new Error('Já existe desperdício para este PCP e dia. Atualize a tela e use Ajustes do desperdício.');throw result.error;}
+      if(!correction)wasteDraft=crypto.randomUUID();
+      await refresh('Desperdício salvo e registrado no log de auditoria. A análise pode ser completada depois pelo PCP.');
+    }catch(error){if(current(e))status(message(error),true);}
+    finally{if(current(e))lock(false);}
+  }
 
   function pager(index, total, navigate) {
     const n = el('nav', 'pdi-perf-pager'); n.setAttribute('aria-label', 'Paginação');
@@ -336,12 +378,12 @@ O lançamento do dia foi concluído. Para correções, procure a supervisão.`))
       const cancel = button('Cancelar', () => { if (!busy) { const details=form.closest('details.record-adjustments');if(details){details.open=false;details.querySelector('summary')?.focus();}form.remove(); editId = null; } }, true); form.append(save, cancel);
       form.addEventListener('submit', event => { event.preventDefault(); updateEntry(row, m2.value, orders.value, reason.value,analyzedInput.value); });recordAdjustments?.({host:form,id:row.id,entity:'daily',inside:true});return form;
     }});
-    if(!context.can_correct)recordAdjustments?.({host:n,id:row.id,entity:'daily'});if(recordWaste.has(row.id))recordAdjustments?.({host:n,id:row.id,entity:'waste',label:'Ajustes do desperdício',deleteLabel:'Excluir desperdício'});return n;
+    if(!context.can_correct)recordAdjustments?.({host:n,id:row.id,entity:'daily'});if(recordWasteIds.has(row.id))recordAdjustments?.({host:n,id:recordWasteIds.get(row.id),entity:'waste',label:'Ajustes do desperdício',deleteLabel:'Excluir desperdício'});return n;
   }
   async function createEntry(rawM2, rawOrders,rawAnalyzed) {
     if (busy || cashController?.isBusy()) return;
     let m2, orders,analyzed;
-    try { m2 = parseM2(rawM2);analyzed=parseM2(rawAnalyzed);if(Number(m2)>Number(analyzed))throw new Error('Salvo não pode superar analisado.'); orders = parseOrders(rawOrders, Number(m2)||Number(analyzed)); } catch (error) { status(message(error), true); return; }
+    try { m2 = parseM2(rawM2);analyzed=parseM2(rawAnalyzed);if(Number(m2)>Number(analyzed))throw new Error('Salvo não pode superar analisado.');if(ownWasteToday?.m2_wasted!==null&&ownWasteToday?.m2_wasted!==undefined&&areaUnits(m2)+areaUnits(ownWasteToday.m2_wasted)>areaUnits(analyzed))throw new Error('Salvo mais o desperdício já informado não podem superar o analisado.'); orders = parseOrders(rawOrders, Number(m2)||Number(analyzed)); } catch (error) { status(message(error), true); return; }
     const e = epoch; lock(true);
     try {
       // Revalida o dia no servidor: não reutiliza a data de uma aba aberta ontem.

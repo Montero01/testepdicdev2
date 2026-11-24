@@ -36,3 +36,19 @@
 
 /* Ações diretas do formulário não acompanham a altura dos campos de texto. */
 .erika-glass .eg-form>button.button{align-self:end;justify-self:start;width:fit-content;max-width:100%;min-height:44px}
+
+/* Ampliação de fotos: diálogo independente preserva o formulário e os anexos. */
+.erika-glass button.button.eg-photo-open{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;padding:0;min-height:44px;overflow:hidden;border:1px solid var(--eg-line);border-radius:6px;background:var(--surface-alt,#eef1f5)!important;color:var(--eg-ink)!important;box-shadow:none}
+.erika-glass button.button.eg-photo-open:hover{background:var(--surface-alt,#eef1f5)!important;filter:none}
+.erika-glass .eg-photo-open img{cursor:zoom-in;border:0}
+.erika-glass .eg-photo-open-label{display:block;min-height:44px;padding:11px 8px;font-size:12px;text-align:center;line-height:1.7;color:var(--eg-ink)}
+.erika-glass .eg-photo-viewer{position:fixed;inset:0;width:min(1240px,calc(100vw - 40px));max-width:calc(100vw - 40px);max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--eg-line);border-radius:12px;background:var(--eg-panel);color:var(--eg-ink);box-shadow:0 20px 80px #0006;overflow:auto;z-index:1000;margin:auto}
+.erika-glass .eg-photo-viewer::backdrop{background:#07111be6;backdrop-filter:blur(3px)}
+.erika-glass .eg-photo-viewer-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;background:var(--eg-panel);border-bottom:1px solid var(--eg-line)}
+.erika-glass .eg-photo-viewer-head h2{font-size:16px;line-height:1.6;margin:0}
+.erika-glass .eg-photo-viewer-head .button{min-height:44px;font-size:13px;flex-shrink:0}
+.erika-glass .eg-photo-viewer-figure{display:flex;flex-direction:column;align-items:center;gap:13px;margin:0;padding:20px;min-width:0}
+.erika-glass .eg-photo-viewer-figure img{display:block;width:auto;max-width:100%;max-height:calc(100dvh - 180px);height:auto;object-fit:contain;background:var(--surface-alt,#eef1f5)}
+.erika-glass .eg-photo-viewer-figure figcaption{max-width:100%;font-size:12px;line-height:1.8;color:var(--eg-muted);text-align:center;overflow-wrap:anywhere}
+.erika-glass .eg-photo-viewer-figure .eg-error{max-width:700px;margin:0}
+@media(max-width:600px){.erika-glass .eg-photo-viewer{width:calc(100vw - 12px);max-width:calc(100vw - 12px);max-height:calc(100dvh - 16px);border-radius:9px}.erika-glass .eg-photo-viewer-head{padding:12px;gap:10px}.erika-glass .eg-photo-viewer-head h2{font-size:14px}.erika-glass .eg-photo-viewer-head .button{font-size:12px;padding-inline:10px}.erika-glass .eg-photo-viewer-figure{padding:12px}.erika-glass .eg-photo-viewer-figure img{max-height:calc(100dvh - 155px)}}
