@@ -4,7 +4,7 @@
 .erika-glass .eg-card>h2{margin:0 0 14px;font-size:1.05rem}.erika-glass .eg-card>h3{font-size:.95rem}
 .erika-glass .eg-main-tabs,.erika-glass .eg-tabs,.erika-glass .eg-actions,.erika-glass .eg-quick-periods,.erika-glass .eg-pager{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .erika-glass .eg-main-tabs{border-bottom:1px solid var(--eg-line);padding-bottom:12px;margin-bottom:10px}.erika-glass .eg-main-tabs .button{font-size:15px;font-weight:750;min-width:130px}
-.erika-glass .eg-tabs{margin-bottom:16px}.erika-glass nav .button[aria-current=page]{box-shadow:none;background:var(--cde-action-bg);color:#ffad70;border:0}
+.erika-glass .eg-tabs{margin-bottom:16px}
 .erika-glass .eg-field{display:flex;flex-direction:column;gap:6px;min-width:0}.erika-glass .eg-field>label{font-size:12px;font-weight:650;color:var(--eg-muted);line-height:1.5}
 .erika-glass .eg-field>input,.erika-glass .eg-field>select,.erika-glass .eg-field>textarea{width:100%;min-height:42px;border:1px solid var(--eg-line);border-radius:8px;background:var(--eg-panel);color:var(--eg-ink);font:inherit;font-size:14px;padding:9px 11px;box-sizing:border-box}
 .erika-glass .eg-field>textarea{min-height:88px;resize:vertical}.erika-glass .eg-field>input[type=checkbox]{width:22px;min-height:22px;accent-color:#ca4a16}.erika-glass .eg-field:has(input[type=checkbox]){flex-direction:row;align-items:center;gap:12px;grid-column:1/-1}

@@ -25,3 +25,7 @@ body :is(.button,.icon-button) .ui-icon{color:inherit}
 #page-performance .pdi-perf .cde-audit .audit-controls button[type=button]:hover,
 .logistics .performance-export :is(button.button,summary):hover,
 .logistics .audit-controls button[type=button]:hover{background:var(--surface-alt);background-image:none;color:var(--text);filter:none}
+
+/* Seleção única para menus internos de Desempenho; não afeta o menu lateral. */
+.app-main :is(.logistics,.sales-performance,.stock-page,.erika-glass) :is(nav,.log-subtabs,.audit-tabs) button:is([aria-pressed="true"],[aria-current="page"]),
+#page-performance .pdi-perf :is(nav,.pdi-perf-periods,.audit-tabs) button:is([aria-pressed="true"],[aria-current="page"]){background:var(--cde-action-hover)!important;background-image:none!important;color:#fff!important;border:0!important;box-shadow:none!important}
