@@ -1,0 +1,46 @@
+-- Verifica estoque de teste isolado; não muda perfis nem permissões existentes.
+begin;
+set local statement_timeout='25s';
+set local lock_timeout='3s';
+set local plpgsql.check_asserts=on;
+set local role authenticated;
+do $test$
+declare actor uuid;company uuid:=gen_random_uuid();item uuid:=gen_random_uuid();kit uuid:=gen_random_uuid();entry uuid:=gen_random_uuid();transfer uuid:=gen_random_uuid();prep uuid:=gen_random_uuid();o1 uuid:=gen_random_uuid();o2 uuid:=gen_random_uuid();bad uuid:=gen_random_uuid();req uuid:=gen_random_uuid();today date;doc text;seed text:=replace(gen_random_uuid()::text,'-','');j int;i int;n int;digit int;r jsonb;payload jsonb;begin
+ select id into actor from profiles where is_master order by full_name limit 1;assert actor is not null;
+ perform set_config('request.jwt.claim.sub',actor::text,true);today:=pdi_performance_private.today_manaus();
+ loop doc:=lpad(floor(random()*1000000000)::bigint::text,9,'0');for j in 1..2 loop n:=0;for i in 1..length(doc)loop n:=n+substr(doc,i,1)::int*(length(doc)+2-i);end loop;digit:=(n*10)%11;if digit=10 then digit:=0;end if;doc:=doc||digit::text;end loop;exit when not exists(select 1 from pdi_eg_companies where document=doc);end loop;
+ perform public.pdi_eg_command('company_save',company,jsonb_build_object('name','QA acabados '||seed,'document',doc));
+ perform public.pdi_eg_command('product_save',item,jsonb_build_object('sku','QA-I-'||left(seed,20),'name','QA item','kind','item','sale_cents',100));
+ perform public.pdi_eg_command('product_save',kit,jsonb_build_object('sku','QA-K-'||left(seed,20),'name','QA kit','kind','kit','sale_cents',100,'components',jsonb_build_array(jsonb_build_object('product_id',item,'quantity',2))));
+ perform public.pdi_eg_command('stock_entry',entry,jsonb_build_object('date',today,'items',jsonb_build_array(jsonb_build_object('product_id',item,'quantity',10))));
+ payload:=jsonb_build_object('date',today,'company_id',company,'payment','cash','items',jsonb_build_array(jsonb_build_object('product_id',item,'quantity',1,'unit_cents',100)),'installments',jsonb_build_array(jsonb_build_object('date',today,'amount_cents',100)));
+ begin perform public.pdi_eg_command('order_save',bad,payload);raise exception 'Vendeu estoque do almoxarifado';exception when check_violation then null;end;
+ perform public.pdi_eg_command('transfer_send',transfer,jsonb_build_object('date',today,'items',jsonb_build_array(jsonb_build_object('product_id',item,'quantity',6))));
+ begin perform public.pdi_eg_command('order_save',bad,payload);raise exception 'Vendeu transferência ainda em trânsito';exception when check_violation then null;end;
+ perform public.pdi_eg_command('transfer_receive',transfer,jsonb_build_object('date',today,'checked',true),1);
+ begin perform public.pdi_eg_command('order_save',bad,payload);raise exception 'Vendeu matéria-prima recebida sem preparo';exception when check_violation then null;end;
+ payload:=jsonb_set(payload,'{items}',jsonb_build_array(jsonb_build_object('product_id',kit,'quantity',1,'unit_cents',100)));
+ begin perform public.pdi_eg_command('order_save',bad,payload);raise exception 'Vendeu kit montável mas ainda não acabado';exception when check_violation then null;end;
+ perform public.pdi_eg_command('prepare',prep,jsonb_build_object('date',today,'product_id',kit,'quantity',2));
+ r:=public.pdi_eg_command('order_save',o1,payload,null,null,req);assert(r->'data'->>'ready_stock_committed')::boolean;
+ assert(select sum(quantity)=1 from pdi_eg_stock_moves where product_id=kit and location='ready');
+ r:=public.pdi_eg_command('order_save',o1,payload,null,null,req);
+ assert(select sum(quantity)=1 from pdi_eg_stock_moves where product_id=kit and location='ready'),'Reenvio não compromete estoque duas vezes';
+ begin perform public.pdi_eg_command('order_save',bad,jsonb_set(jsonb_set(payload,'{items}',jsonb_build_array(jsonb_build_object('product_id',kit,'quantity',1,'unit_cents',100),jsonb_build_object('product_id',kit,'quantity',1,'unit_cents',100))),'{installments}',jsonb_build_array(jsonb_build_object('date',today,'amount_cents',200))));raise exception 'Linhas repetidas ultrapassaram disponível';exception when check_violation then null;end;
+ assert not exists(select 1 from pdi_eg_records where id=bad),'Falha de estoque reverte pedido integralmente';
+ assert(select sum(quantity)=1 from pdi_eg_stock_moves where product_id=kit and location='ready');
+ begin perform public.pdi_eg_command('void',prep,'{}',1,'Teste de anulação com produtos comprometidos');raise exception 'Desfez preparo já comprometido';exception when check_violation then null;end;
+ perform public.pdi_eg_command('order_deliver',o1,jsonb_build_object('date',today),1);
+ assert(select sum(quantity)=1 from pdi_eg_stock_moves where product_id=kit and location='ready'),'Entrega não baixa novamente';
+ perform public.pdi_eg_command('order_save',o2,payload);
+ assert(select sum(quantity)=0 from pdi_eg_stock_moves where product_id=kit and location='ready');
+ begin perform public.pdi_eg_command('order_save',bad,payload);raise exception 'Vendeu unidade já comprometida por outro pedido';exception when check_violation then null;end;
+ perform public.pdi_eg_command('void',o2,'{}',1,'Anulação do pedido ainda não entregue');
+ assert(select sum(quantity)=1 from pdi_eg_stock_moves where product_id=kit and location='ready'),'Anulação libera unidade';
+ perform public.pdi_eg_command('void',o1,'{}',2,'Anulação temporária de pedido entregue');
+ assert(select sum(quantity)=2 from pdi_eg_stock_moves where product_id=kit and location='ready');
+ perform public.pdi_eg_command('void',prep,'{}',1,'Reverter preparo após anular pedidos de teste');
+ assert(select sum(quantity)=0 from pdi_eg_stock_moves where product_id=kit and location='ready');
+end$test$;
+select 'PASS: somente acabados, kit preparado, saldo comprometido, soma de linhas, reenvio, entrega sem dupla baixa e anulação' resultado;
+rollback;

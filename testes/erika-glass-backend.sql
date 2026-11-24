@@ -93,6 +93,7 @@ begin
  assert r->>'status'='received' and(r->>'revision')::int=2,'Recebimento precisa avançar estado/revisão';
  assert(select coalesce(sum(quantity),0)=8 from public.pdi_eg_stock_moves where product_id=item_id and location='raw'),'Conferência deve creditar oito em bruto';
  begin perform public.pdi_eg_command('transfer_receive',transfer_id,jsonb_build_object('date',today,'checked',true),1);raise exception 'FALHOU: ação com revisão antiga';exception when serialization_failure then null;end;
+ begin perform public.pdi_eg_command('order_save',invalid_id,jsonb_build_object('date',today,'company_id',company_id,'payment','cash','items',jsonb_build_array(jsonb_build_object('product_id',item_id,'quantity',1,'unit_cents',1000)),'installments',jsonb_build_array(jsonb_build_object('date',today,'amount_cents',1000))));raise exception 'FALHOU: comercializou matéria-prima sem preparo';exception when check_violation then null;end;
  r:=public.pdi_eg_command('prepare',prep_id,jsonb_build_object('date',today,'product_id',kit_id,'quantity',3));
  assert(select coalesce(sum(quantity),0)=2 from public.pdi_eg_stock_moves where product_id=item_id and location='raw'),'Três kits devem consumir seis componentes';
  assert(select coalesce(sum(quantity),0)=3 from public.pdi_eg_stock_moves where product_id=kit_id and location='ready'),'Preparo deve produzir três kits acabados';
@@ -102,7 +103,10 @@ begin
  r:=public.pdi_eg_command('order_save',order_id,jsonb_build_object('date',today,'company_id',company_id,'payment','boleto','items',jsonb_build_array(jsonb_build_object('product_id',kit_id,'quantity',2,'unit_cents',2500)),'installments',jsonb_build_array(jsonb_build_object('date',today,'amount_cents',2500),jsonb_build_object('date',today+1,'amount_cents',2500))));
  assert r->>'status'='closed' and(r->'data'->>'total_cents')::bigint=5000,'Pedido precisa fechar em 5.000 centavos';
  installment1:=r->'data'->'installments'->0->>'id';installment2:=r->'data'->'installments'->1->>'id';
- assert(select coalesce(sum(quantity),0)=3 from public.pdi_eg_stock_moves where product_id=kit_id and location='ready'),'Fechar pedido não equivale a entregar/retirar estoque';
+ assert(select coalesce(sum(quantity),0)=1 from public.pdi_eg_stock_moves where product_id=kit_id and location='ready'),'Fechar pedido compromete duas unidades acabadas';
+ assert(r->'data'->>'ready_stock_committed')::boolean;
+ begin perform public.pdi_eg_command('order_save',invalid_id,jsonb_build_object('date',today,'company_id',company_id,'payment','cash','items',jsonb_build_array(jsonb_build_object('product_id',kit_id,'quantity',1,'unit_cents',2500),jsonb_build_object('product_id',kit_id,'quantity',1,'unit_cents',2500)),'installments',jsonb_build_array(jsonb_build_object('date',today,'amount_cents',5000))));raise exception 'FALHOU: ignorou soma das linhas ou vendeu unidades comprometidas';exception when check_violation then null;end;
+ assert not exists(select 1 from public.pdi_eg_records where id=invalid_id),'Pedido sem saldo é integralmente recusado';
  r:=public.pdi_eg_command('receipt_add',order_id,jsonb_build_object('date',today,'installment_id',installment1,'amount_cents',2000),1,null,receipt_request);receipt1:=(r->>'id')::uuid;
  cached:=public.pdi_eg_command('receipt_add',order_id,jsonb_build_object('date',today,'installment_id',installment1,'amount_cents',2000),1,null,receipt_request);
  assert cached=r,'Reenvio da baixa precisa devolver a mesma resposta';

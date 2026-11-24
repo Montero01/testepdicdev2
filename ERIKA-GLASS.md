@@ -20,7 +20,7 @@ As duas atribuições iniciais são explícitas em `pdi_eg_access`. Não foram a
 2. Jackson/gestão registra entradas novas no almoxarifado e envia transferências.
 3. Adriane/Produção confere os itens e confirma recebimento; só então há saldo bruto no destino.
 4. O preparo consome itens brutos ou componentes do kit e gera produtos acabados.
-5. O pedido fechado gera parcelas previstas. A entrega confirmada pela coordenação/gestão baixa produtos acabados. Fechar pedido sozinho não baixa estoque.
+5. O pedido só fecha com saldo acabado disponível e gera parcelas previstas. O fechamento compromete as unidades e as retira do saldo disponível; a entrega confirma a saída sem repetir a baixa. Anular o pedido reverte seu compromisso de estoque. Almoxarifado, transferências em trânsito e bruto não podem ser comercializados.
 6. No Financeiro, cada parcela recebe baixa manual com data e valor efetivos. Parcelas podem receber baixas parciais, sem ultrapassar seu saldo.
 
 Estoque começa em zero. Saldos negativos, conferência repetida e estornos que dependem de produtos já consumidos são bloqueados em transação. Para desfazer uma cadeia, anule primeiro as operações dependentes. A chave de requisição evita repetir a mesma operação após reenvio de rede.
