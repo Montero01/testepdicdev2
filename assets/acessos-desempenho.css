@@ -1,0 +1,38 @@
+/* Administração de acessos: estilos restritos ao módulo. */
+.performance-access { display:grid; gap:20px; min-width:0; }
+.performance-access .view-heading { margin:0; }
+.performance-access .view-heading .button { margin-top:14px; }
+.performance-access .card { margin:0; min-width:0; }
+.performance-access .card>h2 { margin-bottom:14px; }
+.performance-access .paccess-status { margin:0; font-size:13px; color:var(--muted,#687e91); line-height:1.8; }
+.performance-access .paccess-status.form-error { color:var(--danger,#a1444e); }
+.performance-access .paccess-notice { padding:15px 18px; background:var(--surface-alt,#eef3f8); color:var(--muted,#687e91); border:1px solid var(--border,#dce5ee); border-radius:9px; font-size:12px; line-height:1.9; margin:0; }
+.performance-access .paccess-filters { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+.performance-access .paccess-editor { display:grid; grid-template-columns:1.3fr 1fr 1.1fr; gap:18px; align-items:end; }
+.performance-access .paccess-editor>button { grid-column:1/-1; justify-self:start; }
+.performance-access .field { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.performance-access label { font-size:12px; font-weight:600; line-height:1.6; color:var(--text,#294258); }
+.performance-access input,.performance-access select,.performance-access textarea { width:100%; min-width:0; min-height:44px; background:var(--surface,#fff); color:var(--text,#294258); border:1px solid var(--border,#dce5ee); border-radius:7px; padding:11px 12px; font:inherit; font-size:13px; }
+.performance-access textarea { resize:vertical; min-height:90px; }
+.performance-access :is(button,input,select,textarea):focus-visible { outline:3px solid #4087b4; outline-offset:3px; }
+.performance-access .paccess-current,.performance-access .paccess-option-description { font-size:12px; line-height:1.8; margin:12px 0 0; }
+.performance-access .paccess-review>p { font-size:12px; line-height:1.8; }
+.performance-access .paccess-draft { display:flex; justify-content:space-between; align-items:center; gap:20px; border:1px solid var(--border,#dce5ee); border-left:3px solid var(--cde-action-bg,#1d3d5d); background:var(--surface-alt,#f5f8fb); border-radius:7px; padding:15px 17px; margin:12px 0; }
+.performance-access .paccess-draft h3 { font-size:14px; line-height:1.7; }
+.performance-access .paccess-draft p { font-size:12px; line-height:1.8; margin-top:3px; }
+.performance-access .paccess-draft>button { flex-shrink:0; }
+.performance-access .paccess-save-form { margin-top:22px; }
+.performance-access .paccess-count { margin:7px 0 12px; font-size:11px; text-align:right; }
+.performance-access .form-actions { display:flex; flex-wrap:wrap; gap:10px; margin:15px 0; }
+.performance-access .button { min-height:44px; }
+.performance-access .paccess-table-scroll { overflow:auto; }
+.performance-access table { width:100%; border-collapse:collapse; text-align:left; min-width:700px; }
+.performance-access th { background:var(--surface-alt,#f1f5f9); font-size:11px; color:var(--muted,#687e91); }
+.performance-access td { font-size:12px; }
+.performance-access td,.performance-access th { padding:13px 15px; border-bottom:1px solid var(--border,#e4eaf0); line-height:1.8; }
+.performance-access .paccess-audit-row { padding:17px 0; border-top:1px solid var(--border,#e4eaf0); }
+.performance-access .paccess-audit-row h3 { font-size:13px; line-height:1.8; }
+.performance-access .paccess-audit-row p { margin-top:5px; font-size:12px; line-height:1.85; overflow-wrap:anywhere; }
+.performance-access .paccess-audit-row small { display:block; margin-top:7px; font-size:10px; color:var(--muted,#687e91); overflow-wrap:anywhere; }
+@media(max-width:1050px){.performance-access .paccess-editor{grid-template-columns:1fr 1fr}.performance-access .paccess-editor .field:first-child{grid-column:1/-1}}
+@media(max-width:640px){.performance-access{gap:17px}.performance-access .paccess-filters,.performance-access .paccess-editor{grid-template-columns:1fr}.performance-access .paccess-editor .field:first-child{grid-column:auto}.performance-access .paccess-draft{display:block;padding:14px}.performance-access .paccess-draft>button{margin-top:12px;width:100%}.performance-access .paccess-editor>button,.performance-access .form-actions>.button{width:100%}.performance-access .paccess-notice{font-size:11px;padding:13px 15px}.performance-access input,.performance-access select,.performance-access textarea{font-size:14px}}
