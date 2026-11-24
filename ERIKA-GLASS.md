@@ -36,7 +36,7 @@ Estoque começa em zero. Saldos negativos, conferência repetida e estornos que 
 
 ## Fotos e auditoria
 
-Até três imagens antes e três depois por visita, JPG/PNG/WebP até 5 MB cada. Bucket privado, com acesso pela visita e links temporários. A retirada de uma foto é auditada; se a limpeza física não for autorizada pelo Storage, o arquivo permanece privado sem vínculo ativo. Não foi ampliado o acesso a arquivos órfãos.
+No formulário Registrar/Ajustar visita, as seções Fotos antes e Fotos depois oferecem Tirar foto (câmera traseira quando suportada pelo navegador) e Anexar da galeria. Até três imagens antes e três depois por visita, JPG/PNG/WebP até 5 MB cada. As imagens têm prévia local e são enviadas depois de salvar a visita; em falha parcial, Salvar retoma os anexos sem recriar o registro. O botão Fotos antes / depois continua disponível para visitas já registradas. Bucket privado, com acesso pela visita e links temporários. A retirada de uma foto é auditada; se a limpeza física não for autorizada pelo Storage, o arquivo permanece privado sem vínculo ativo. Não foi ampliado o acesso a arquivos órfãos.
 
 Log contém usuário, cargo, horário, antes/depois e justificativa. Exportações CSV registram quem iniciou a geração. O total de linhas informado pelo cliente no evento de exportação não é prova de download concluído.
 
